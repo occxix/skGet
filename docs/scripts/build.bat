@@ -1,9 +1,9 @@
 @echo off
-REM skget 构建脚本 (Windows)
+REM sksync 构建脚本 (Windows)
 REM 用途: 编译 TypeScript、验证构建产物
 
 echo ==========================================
-echo   skget 构建脚本
+echo   sksync 构建脚本
 echo ==========================================
 
 REM 进入项目目录
@@ -50,4 +50,4 @@ echo.
 echo 构建产物位于: dist\
 echo.
 echo 测试运行:
-echo   node bin\skget.js --help
+echo   node bin\sksync.js --help

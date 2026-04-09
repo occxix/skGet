@@ -1,4 +1,4 @@
-# skget 验收测试报告
+# sksync 验收测试报告
 
 **生成时间**: 2026-04-09
 **版本**: v2.0.0 (Sync 重构)
@@ -190,7 +190,7 @@
 ### P1-07 旧 skill sync 命令兼容
 | 测试项 | 状态 | 说明 |
 |--------|------|------|
-| 废弃提示 | ✅ PASS | 输出 `Use skget sync instead` |
+| 废弃提示 | ✅ PASS | 输出 `Use sksync sync instead` |
 | 旧代码清理 | ✅ PASS | skill/sync.ts 已删除 |
 
 ---
@@ -217,7 +217,7 @@
 ### 删除文件
 | 文件 | 说明 |
 |------|------|
-| `src/commands/skill/sync.ts` | 旧技能级同步，已由 `skget sync` 替代 |
+| `src/commands/skill/sync.ts` | 旧技能级同步，已由 `sksync sync` 替代 |
 
 ---
 
@@ -310,7 +310,7 @@
 
 **验收结果**: ✅ 通过
 
-skget v2.0.0 完成了 Sync 功能的完整重构，实现了：
+sksync v2.0.0 完成了 Sync 功能的完整重构，实现了：
 - 单一仓库架构（简化自双仓库）
 - 完整的 push/pull/sync/status/resolve 操作
 - AI 友好的 JSON 输出模式

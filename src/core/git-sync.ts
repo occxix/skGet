@@ -70,7 +70,7 @@ export class GitSync {
       }
       const sha = await git.commit({
         fs, dir: this.dir, message,
-        author: { name: 'skget', email: 'skget@local' }
+        author: { name: 'sksync', email: 'sksync@local' }
       });
       logger.debug(`Committed: ${sha}`);
       return sha;
@@ -293,9 +293,9 @@ export async function isGitRepo(dir: string): Promise<boolean> {
 }
 
 export async function getToken(): Promise<string | null> {
-  return process.env.SKGET_TOKEN || null;
+  return process.env.SKSYNC_TOKEN || null;
 }
 
 export async function setToken(token: string): Promise<void> {
-  process.env.SKGET_TOKEN = token;
+  process.env.SKSYNC_TOKEN = token;
 }

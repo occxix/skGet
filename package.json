@@ -1,10 +1,10 @@
 {
-  "name": "skget",
+  "name": "@occxix/sksync",
   "version": "1.0.6",
   "description": "CLI skill management tool for developers - manage skills, knowledge base, and sync across devices",
   "type": "module",
   "bin": {
-    "skget": "./bin/skget.js"
+    "sksync": "./bin/sksync.js"
   },
   "main": "./dist/index.js",
   "exports": {
@@ -44,12 +44,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/skget.git"
+    "url": "https://github.com/occxix/skGet.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/skget/issues"
+    "url": "https://github.com/occxix/skGet/issues"
   },
-  "homepage": "https://github.com/your-username/skget#readme",
+  "homepage": "https://github.com/occxix/skGet#readme",
   "dependencies": {
     "commander": "^12.0.0",
     "@inquirer/prompts": "^7.0.0",

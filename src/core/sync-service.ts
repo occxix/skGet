@@ -30,10 +30,10 @@ export class SyncService {
 
   private ensureGitSync(): GitSync {
     if (!this.config.remote?.url) {
-      throw new Error('REMOTE_NOT_CONFIGURED: No remote configured. Run: skget config set remote.url <url>');
+      throw new Error('REMOTE_NOT_CONFIGURED: No remote configured. Run: sksync config set remote.url <url>');
     }
     if (!this.gitSync) {
-      const token = (process.env.SKGET_TOKEN || undefined) as string | undefined;
+      const token = (process.env.SKSYNC_TOKEN || undefined) as string | undefined;
       this.gitSync = new GitSync({
         dir: this.dataDir,
         url: this.config.remote.url,
@@ -88,7 +88,7 @@ export class SyncService {
         if (ab.behind > 0) {
           result.errors.push({
             code: 'PUSH_REJECTED',
-            message: 'Remote has newer commits. Run `skget sync --pull` first.'
+            message: 'Remote has newer commits. Run `sksync sync --pull` first.'
           });
           return result;
         }

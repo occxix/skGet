@@ -38,7 +38,7 @@ export class Storage {
       this.config = config;
       await this.saveConfig();
     } else {
-      throw new Error('Configuration not found. Please run `skget config init` first.');
+      throw new Error('Configuration not found. Please run `sksync config init` first.');
     }
 
     if (this.config) {

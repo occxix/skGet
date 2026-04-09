@@ -217,6 +217,6 @@ export async function runFirstTimeSetup(options: FirstTimeSetupOptions = {}): Pr
     console.log('\n配置完成！\n');
     console.log(`存储路径：${expandPath(storagePath)}`);
     console.log(`远程仓库：${config.remote?.url}`);
-    console.log('\n运行 `skget --help` 查看可用命令\n');
+    console.log('\n运行 `sksync --help` 查看可用命令\n');
   }
 }

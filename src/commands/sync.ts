@@ -103,8 +103,8 @@ async function syncHandler(
 
     if (errMsg.includes('REMOTE_NOT_CONFIGURED')) {
       console.error(chalk.red('\nError: No remote repository configured.\n'));
-      console.error(chalk.gray('  skget config set remote.url <git-url>'));
-      console.error(chalk.gray('  skget config set remote.branch main\n'));
+      console.error(chalk.gray('  sksync config set remote.url <git-url>'));
+      console.error(chalk.gray('  sksync config set remote.branch main\n'));
     } else {
       console.error(chalk.red(`Error: ${errMsg}`));
     }
@@ -154,7 +154,7 @@ function outputResult(result: any, isJson: boolean): void {
       console.log(table.toString());
 
       if (result.action === 'sync') {
-        console.log(chalk.gray('\n  Resolve conflicts manually, then run `skget sync` again.'));
+        console.log(chalk.gray('\n  Resolve conflicts manually, then run `sksync sync` again.'));
       }
       console.log();
     }
@@ -167,7 +167,7 @@ function outputStatus(status: any): void {
 
   if (!status.remoteConfigured) {
     console.log(chalk.yellow('\n  Remote: Not configured'));
-    console.log(chalk.gray('  Run: skget config set remote.url <git-url>\n'));
+    console.log(chalk.gray('  Run: sksync config set remote.url <git-url>\n'));
     return;
   }
 

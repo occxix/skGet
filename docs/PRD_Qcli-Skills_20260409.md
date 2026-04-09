@@ -1,8 +1,8 @@
-# skget 同步功能 - 产品需求文档 (PRD)
+# sksync 同步功能 - 产品需求文档 (PRD)
 
 **文档版本**: v3.0
 **创建日期**: 2026/04/09
-**产品名称**: skget（简称 `skget`）
+**产品名称**: sksync（简称 `sksync`）
 **本版本聚焦**: 同步功能重构
 
 ---
@@ -15,17 +15,17 @@
 
 ### Story 1：开发者日常同步
 > **作为** 在多台电脑工作的开发者
-> **我希望** 运行 `skget sync` 即可将所有环境的数据推送到 GitHub
-> **以便** 在另一台设备上 `skget sync --pull` 恢复全部工作环境
+> **我希望** 运行 `sksync sync` 即可将所有环境的数据推送到 GitHub
+> **以便** 在另一台设备上 `sksync sync --pull` 恢复全部工作环境
 
 ### Story 2：AI Agent 调用同步
 > **作为** AI 编程助手（如 CodeBuddy Code）
-> **我希望** 调用 `skget sync --json` 后收到结构化 JSON 结果
+> **我希望** 调用 `sksync sync --json` 后收到结构化 JSON 结果
 > **以便** 解析同步状态和冲突信息，自动决定处理策略
 
 ### Story 3：按环境同步
 > **作为** 只使用 Claude 和 CodeBuddy 的开发者
-> **我希望** `skget sync --env claude,codebuddy` 只同步这两个环境
+> **我希望** `sksync sync --env claude,codebuddy` 只同步这两个环境
 > **以便** 避免推送不相关环境的数据
 
 ### Story 4：冲突检测与解决
@@ -35,7 +35,7 @@
 
 ### Story 5：查看同步状态
 > **作为** 开发者
-> **我希望** 执行 `skget sync --status` 查看本地与远程的差异
+> **我希望** 执行 `sksync sync --status` 查看本地与远程的差异
 > **以便** 在同步前了解将有哪些变更
 
 ## 3. 架构决策
@@ -65,7 +65,7 @@
 ### 4.1 Push 流程（本地 → 远程）
 
 ```
-skget sync
+sksync sync
     │
     ├─ 前置检查
     │  ├─ config.remote.url 存在？ → 否：报错
@@ -82,7 +82,7 @@ skget sync
 ### 4.2 Pull 流程（远程 → 本地）
 
 ```
-skget sync --pull
+sksync sync --pull
     │
     ├─ 前置检查
     │  └─ data/ 是 git repo？ → 否：git clone remote to data/
@@ -102,7 +102,7 @@ skget sync --pull
 ### 4.3 双向 Sync 流程（默认行为）
 
 ```
-skget sync（默认 = --full）
+sksync sync（默认 = --full）
     │
     ├─ 1. 执行 pull 流程
     ├─ 2. 有冲突？ → 返回冲突信息，不继续 push
@@ -124,7 +124,7 @@ skget sync（默认 = --full）
     │  └─ 普通模式：输出冲突列表，提示用户
     │
     └─ AI 决策后回传
-       skget sync resolve --resolution '<json>'
+       sksync sync resolve --resolution '<json>'
 ```
 
 ## 5. 功能列表
@@ -134,15 +134,15 @@ skget sync（默认 = --full）
 | 编号 | 功能 | 描述 | 验收标准 |
 |------|------|------|----------|
 | S-P0-01 | 配置远程仓库 | 单一 `remote.url` + `remote.branch` | `config set remote.url` 持久化 |
-| S-P0-02 | Push 同步 | 将 data 目录变更推送到远程 | `skget sync` 成功 push |
-| S-P0-03 | Pull 同步 | 从远程拉取更新到本地 data | `skget sync --pull` 成功 pull |
-| S-P0-04 | 双向 Sync | 先 pull 再 push | `skget sync`（默认行为） |
+| S-P0-02 | Push 同步 | 将 data 目录变更推送到远程 | `sksync sync` 成功 push |
+| S-P0-03 | Pull 同步 | 从远程拉取更新到本地 data | `sksync sync --pull` 成功 pull |
+| S-P0-04 | 双向 Sync | 先 pull 再 push | `sksync sync`（默认行为） |
 | S-P0-05 | 环境过滤 | `--env` 指定同步范围 | 只同步指定环境目录 |
 | S-P0-06 | 冲突检测 | pull/sync 时检测文件冲突 | 返回结构化冲突列表 |
 | S-P0-07 | JSON 输出 | `--json` 返回结构化结果 | AI 可解析的 JSON 格式 |
 | S-P0-08 | 初始化仓库 | 首次同步自动 init + remote add | 无需手动 git init |
 | S-P0-09 | 安全扫描 | push 前扫描敏感信息 | 检测到敏感信息时中止 |
-| S-P0-10 | 状态查询 | 查看本地与远程的差异 | `skget sync --status` 显示 ahead/behind |
+| S-P0-10 | 状态查询 | 查看本地与远程的差异 | `sksync sync --status` 显示 ahead/behind |
 
 ### P1 - 后续迭代
 
@@ -159,34 +159,34 @@ skget sync（默认 = --full）
 # === 核心同步 ===
 
 # 双向同步（默认，先 pull 再 push）
-skget sync
-skget sync --env claude              # 只同步 claude 环境
-skget sync --env claude,cursor       # 同步多个环境
+sksync sync
+sksync sync --env claude              # 只同步 claude 环境
+sksync sync --env claude,cursor       # 同步多个环境
 
 # 单向推送
-skget sync push
+sksync sync push
 
 # 单向拉取
-skget sync pull
-skget sync pull --env codebuddy
+sksync sync pull
+sksync sync pull --env codebuddy
 
 # 查看同步状态
-skget sync --status
+sksync sync --status
 
 # === 输出格式 ===
 
-skget sync --json                    # JSON 输出（AI 友好）
-skget sync                           # 表格输出（人类友好，默认）
+sksync sync --json                    # JSON 输出（AI 友好）
+sksync sync                           # 表格输出（人类友好，默认）
 
 # === 预览与强制 ===
 
-skget sync --dry-run                 # 预览将要同步的变更
-skget sync --force                   # 强制覆盖（冲突时采用远程版本）
+sksync sync --dry-run                 # 预览将要同步的变更
+sksync sync --force                   # 强制覆盖（冲突时采用远程版本）
 
 # === 冲突解决（P1）===
 
 # AI 传入冲突决策列表
-skget sync resolve --resolution '[{"file":"skills/claude/review/SKILL.md","resolution":"keep-remote"}]'
+sksync sync resolve --resolution '[{"file":"skills/claude/review/SKILL.md","resolution":"keep-remote"}]'
 ```
 
 ## 7. 配置简化方案
@@ -204,7 +204,7 @@ skget sync resolve --resolution '[{"file":"skills/claude/review/SKILL.md","resol
 ```json
 {
   "remote": {
-    "url": "https://github.com/user/skget-data.git",
+    "url": "https://github.com/user/sksync-data.git",
     "branch": "main"
   }
 }
@@ -214,11 +214,11 @@ CLI 配置方式：
 
 ```bash
 # 初始化时配置
-npx skget config init --repo "https://github.com/user/skget-data.git"
+npx sksync config init --repo "https://github.com/user/sksync-data.git"
 
 # 后续修改
-npx skget config set remote.url "https://github.com/user/skget-data.git"
-npx skget config set remote.branch "main"
+npx sksync config set remote.url "https://github.com/user/sksync-data.git"
+npx sksync config set remote.branch "main"
 ```
 
 ### 向后兼容
@@ -271,7 +271,7 @@ npx skget config set remote.branch "main"
       "remoteSize": 1089
     }
   ],
-  "resolutionHint": "Use: skget sync resolve --resolution '<json>'",
+  "resolutionHint": "Use: sksync sync resolve --resolution '<json>'",
   "syncedAt": "2026-04-09T12:00:00Z"
 }
 ```
@@ -282,7 +282,7 @@ npx skget config set remote.branch "main"
 {
   "success": true,
   "remoteConfigured": true,
-  "remoteUrl": "https://github.com/user/skget-data.git",
+  "remoteUrl": "https://github.com/user/sksync-data.git",
   "branch": "main",
   "ahead": 3,
   "behind": 1,
@@ -300,7 +300,7 @@ npx skget config set remote.branch "main"
   "errors": [
     {
       "code": "REMOTE_NOT_CONFIGURED",
-      "message": "No remote configured. Run: skget config set remote.url <url>"
+      "message": "No remote configured. Run: sksync config set remote.url <url>"
     }
   ]
 }
