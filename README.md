@@ -230,6 +230,8 @@ npx qskills knowledge remove <id>
 
 ## Agent 管理
 
+> **短命令**：`agent` 可缩写为 `a`，如 `qskills a add`、`qskills a list`
+
 ### 添加 Agent 配置
 
 ```bash
