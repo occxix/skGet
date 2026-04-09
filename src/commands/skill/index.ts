@@ -20,6 +20,7 @@ export function initSkillCommands(program: Command): void {
     .option('-t, --type <type>', 'skill type (single|folder)', 'single')
     .option('-s, --source <source>', 'source repository (public|private)', 'private')
     .option('-e, --env <environment>', 'target environment (claude|cursor|qwen|codex|codebuddy|common)', 'common')
+    .option('--all', 'install to all environments')
     .option('--tags <tags>', 'tags (comma separated)')
     .option('--description <desc>', 'skill description')
     .option('--skip-scan', 'skip security scan')

@@ -15,6 +15,7 @@ interface AddOptions {
   tags?: string;
   description?: string;
   skipScan: boolean;
+  all: boolean;
 }
 
 export async function addSkill(sourcePath: string, options: AddOptions): Promise<void> {
@@ -50,8 +51,8 @@ export async function addSkill(sourcePath: string, options: AddOptions): Promise
   let description = options.description;
   let tags = options.tags ? sanitizeTags(options.tags) : [];
 
-  // 交互式选择环境
-  if (!options.env) {
+  // 交互式选择环境（如果没有指定 --all 或 --env）
+  if (!options.all && !options.env) {
     const { select } = await import('@inquirer/prompts');
     environment = await select({
       message: 'Select target environment',
@@ -130,16 +131,37 @@ export async function addSkill(sourcePath: string, options: AddOptions): Promise
   // 添加技能
   try {
     const storage = await getStorage();
-    await storage.addSkill(expandedPath, {
-      name: skillName,
-      type: options.type,
-      source: options.source,
-      environment: environment,
-      description: description || '',
-      tags
-    });
 
-    console.log(chalk.green(`\n✓ Skill "${skillName}" added to ${environment} environment.\n`));
+    // 如果指定 --all，安装到所有环境
+    if (options.all) {
+      const allEnv: AIEnvironment[] = ['claude', 'cursor', 'qwen', 'codex', 'codebuddy', 'common'];
+      console.log(chalk.cyan(`\nInstalling "${skillName}" to all environments...\n`));
+
+      for (const env of allEnv) {
+        await storage.addSkill(expandedPath, {
+          name: skillName,
+          type: options.type,
+          source: options.source,
+          environment: env,
+          description: description || '',
+          tags
+        });
+        console.log(chalk.gray(`  ✓ ${env}`));
+      }
+
+      console.log(chalk.green(`\n✓ Skill "${skillName}" added to all ${allEnv.length} environments.\n`));
+    } else {
+      await storage.addSkill(expandedPath, {
+        name: skillName,
+        type: options.type,
+        source: options.source,
+        environment: environment,
+        description: description || '',
+        tags
+      });
+
+      console.log(chalk.green(`\n✓ Skill "${skillName}" added to ${environment} environment.\n`));
+    }
   } catch (error) {
     logger.error(`Failed to add skill: ${error}`);
     process.exit(1);

@@ -95,6 +95,9 @@ npx qskills skill add ./my-script.js --name my-script --env claude
 # 添加文件夹技能
 npx qskills skill add ./my-project --name my-project --type folder --env cursor
 
+# 添加到所有环境
+npx qskills skill add ./my-tool.js --name my-tool --all
+
 # 完整参数示例
 npx qskills skill add ./tool.py \
   --name my-tool \
