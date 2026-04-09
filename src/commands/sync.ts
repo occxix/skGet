@@ -58,7 +58,7 @@ async function syncHandler(
 
     // Route sub-actions
     if (action === 'status' || options.status) {
-      const status = await service.status();
+      const status = await service.status(syncOptions);
       if (isJson) {
         console.log(JSON.stringify(status, null, 2));
       } else {

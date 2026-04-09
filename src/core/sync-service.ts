@@ -7,6 +7,7 @@ import { expandPath } from '../utils/helpers.js';
 import { logger } from '../utils/logger.js';
 
 const ALL_ENVIRONMENTS: AIEnvironment[] = ['claude', 'cursor', 'qwen', 'codex', 'codebuddy', 'common'];
+const RESOURCE_DIRS = ['skills', 'knowledge', 'agents'];
 
 export interface SyncOptions {
   environments?: AIEnvironment[];
@@ -14,6 +15,23 @@ export interface SyncOptions {
   dryRun?: boolean;
   force?: boolean;
   strategy?: 'local-first' | 'remote-first';
+}
+
+/** Build path prefixes for the given environments, e.g. ['skills/claude/', 'knowledge/claude/', ...] */
+function buildEnvPrefixes(environments: AIEnvironment[]): string[] {
+  return environments.flatMap(env => RESOURCE_DIRS.map(dir => `${dir}/${env}/`));
+}
+
+/** Check if a file path belongs to any of the given environment prefixes */
+function matchesEnvPrefix(filepath: string, prefixes: string[]): boolean {
+  return prefixes.some(prefix => filepath.startsWith(prefix));
+}
+
+/** Filter file lists to only include files matching the env prefixes (or index.json if all envs) */
+export function filterByEnvironments(files: string[], environments: AIEnvironment[]): string[] {
+  if (!environments || environments.length === 0) return files;
+  const prefixes = buildEnvPrefixes(environments);
+  return files.filter(f => matchesEnvPrefix(f, prefixes));
 }
 
 export class SyncService {
@@ -75,7 +93,16 @@ export class SyncService {
 
       // Check for changes
       const status = await gs.getStatus();
-      const hasChanges = status.modified.length > 0 || status.untracked.length > 0;
+      let modified = status.modified;
+      let untracked = status.untracked;
+
+      // Filter by environment if specified
+      if (options.environments && options.environments.length > 0) {
+        modified = filterByEnvironments(modified, options.environments);
+        untracked = filterByEnvironments(untracked, options.environments);
+      }
+
+      const hasChanges = modified.length > 0 || untracked.length > 0;
 
       if (!hasChanges) {
         result.success = true;
@@ -97,14 +124,15 @@ export class SyncService {
       }
 
       if (options.dryRun) {
-        result.summary.filesModified = status.modified.length;
-        result.summary.filesAdded = status.untracked.length;
+        result.summary.filesModified = modified.length;
+        result.summary.filesAdded = untracked.length;
         return result;
       }
 
-      // Commit and push
-      const message = `sync: push ${new Date().toISOString()}`;
-      const sha = await gs.commit(message);
+      // Commit and push (only filtered files)
+      const envLabel = options.environments?.length ? ` [${options.environments.join(',')}]` : '';
+      const message = `sync: push${envLabel} ${new Date().toISOString()}`;
+      const sha = await gs.commit(message, [...modified, ...untracked]);
 
       if (!sha) {
         result.errors.push({ code: 'COMMIT_FAILED', message: 'Failed to commit changes' });
@@ -115,8 +143,8 @@ export class SyncService {
 
       result.success = true;
       result.commitSha = sha;
-      result.summary.filesModified = status.modified.length;
-      result.summary.filesAdded = status.untracked.length;
+      result.summary.filesModified = modified.length;
+      result.summary.filesAdded = untracked.length;
       result.syncedAt = new Date().toISOString();
 
       logger.debug(`Push successful: ${sha}`);
@@ -174,9 +202,14 @@ export class SyncService {
       const mergeResult = await gs.merge();
 
       if (!mergeResult.success && mergeResult.mergeConflicts.length > 0) {
-        // Collect conflict details
+        // Collect conflict details (filtered by environment if specified)
+        let conflictFiles = mergeResult.mergeConflicts;
+        if (options.environments && options.environments.length > 0) {
+          conflictFiles = filterByEnvironments(conflictFiles, options.environments);
+        }
+
         const conflicts: ConflictInfo[] = [];
-        for (const file of mergeResult.mergeConflicts) {
+        for (const file of conflictFiles) {
           conflicts.push({
             file,
             resourceType: this.inferResourceType(file),
@@ -255,7 +288,7 @@ export class SyncService {
   }
 
   /** Get sync status */
-  async status(): Promise<SyncStatus> {
+  async status(options?: SyncOptions): Promise<SyncStatus> {
     const status: SyncStatus = {
       remoteConfigured: !!this.config.remote?.url,
       remoteUrl: this.config.remote?.url,
@@ -279,11 +312,20 @@ export class SyncService {
       const repoStatus = await gs.getStatus();
       const ab = await gs.getAheadBehind();
 
+      let modified = repoStatus.modified;
+      let untracked = repoStatus.untracked;
+
+      // Filter by environment if specified
+      if (options?.environments && options.environments.length > 0) {
+        modified = filterByEnvironments(modified, options.environments);
+        untracked = filterByEnvironments(untracked, options.environments);
+      }
+
       status.ahead = ab.ahead;
       status.behind = ab.behind;
-      status.modified = repoStatus.modified;
-      status.untracked = repoStatus.untracked;
-      status.connected = true; // fetch didn't throw
+      status.modified = modified;
+      status.untracked = untracked;
+      status.connected = true;
     } catch {
       status.connected = false;
     }

@@ -62,10 +62,10 @@ export class GitSync {
     }
   }
 
-  async commit(message: string): Promise<string | null> {
+  async commit(message: string, filepaths?: string[]): Promise<string | null> {
     try {
-      const status = await this.getStatus();
-      for (const file of [...status.modified, ...status.untracked]) {
+      const files = filepaths || [...(await this.getStatus()).modified, ...(await this.getStatus()).untracked];
+      for (const file of files) {
         await git.add({ fs, dir: this.dir, filepath: file });
       }
       const sha = await git.commit({

@@ -96,6 +96,48 @@ describe('SyncService', () => {
   });
 });
 
+describe('Environment filtering', () => {
+  it('should filter files by environment', async () => {
+    const { filterByEnvironments } = await import('../core/sync-service.js');
+    const files = [
+      'skills/claude/test/SKILL.md',
+      'skills/cursor/other/SKILL.md',
+      'knowledge/claude/doc1.md',
+      'agents/claude/agent1/config.json',
+      'skills/qwen/test.md',
+      'index.json'
+    ];
+
+    const filtered = filterByEnvironments(files, ['claude']);
+    expect(filtered).toEqual([
+      'skills/claude/test/SKILL.md',
+      'knowledge/claude/doc1.md',
+      'agents/claude/agent1/config.json'
+    ]);
+  });
+
+  it('should filter files by multiple environments', async () => {
+    const { filterByEnvironments } = await import('../core/sync-service.js');
+    const files = [
+      'skills/claude/a.md',
+      'skills/cursor/b.md',
+      'skills/qwen/c.md'
+    ];
+
+    const filtered = filterByEnvironments(files, ['claude', 'cursor']);
+    expect(filtered).toEqual([
+      'skills/claude/a.md',
+      'skills/cursor/b.md'
+    ]);
+  });
+
+  it('should return all files when no environment specified', async () => {
+    const { filterByEnvironments } = await import('../core/sync-service.js');
+    const files = ['skills/claude/a.md', 'skills/cursor/b.md'];
+    expect(filterByEnvironments(files, [])).toEqual(files);
+  });
+});
+
 describe('ConflictInfo type', () => {
   it('should define expected fields', async () => {
     const { ConflictInfo } = await import('../types/index.js');
