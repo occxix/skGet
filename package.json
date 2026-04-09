@@ -1,6 +1,6 @@
 {
   "name": "qskills",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "CLI skill management tool for developers - manage skills, knowledge base, and sync across devices",
   "type": "module",
   "bin": {
