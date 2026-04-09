@@ -1,6 +1,6 @@
 {
-  "id": "qskills-tool",
-  "name": "qskills",
+  "id": "skget-tool",
+  "name": "skget",
   "version": "1.0.3",
   "description": "AI 技能管理工具 - 支持多环境技能、知识库、Agent 配置管理",
   "author": "hlrlive",

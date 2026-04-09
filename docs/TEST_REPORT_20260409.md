@@ -1,4 +1,4 @@
-# Qcli-Skills 测试报告
+# skget 测试报告
 
 **生成日期**: 2026/04/09
 **测试类型**: 全量回归测试
@@ -105,7 +105,7 @@
 
 ```bash
 $ npm run build
-> qskills@1.0.0 build
+> skget@1.0.0 build
 > tsc
 
 (无错误)

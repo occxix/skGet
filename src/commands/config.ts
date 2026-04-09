@@ -4,6 +4,16 @@ import { runFirstTimeSetup } from '../core/init.js';
 import chalk from 'chalk';
 import Table from 'cli-table3';
 
+interface InitOptions {
+  baseDir?: string;
+  publicRepo?: string;
+  privateRepo?: string;
+  enableScanner?: string;
+  scanBeforePush?: string;
+  defaults?: boolean;
+  repo?: string;
+}
+
 export function initConfigCommands(program: Command): void {
   const config = program.command('config').description('Configuration management commands');
 
@@ -11,8 +21,15 @@ export function initConfigCommands(program: Command): void {
   config
     .command('init')
     .description('Initialize configuration')
-    .action(async () => {
-      await runFirstTimeSetup();
+    .option('--baseDir <path>', 'Storage base directory')
+    .option('--public-repo <url>', 'Public Git repository URL')
+    .option('--private-repo <url>', 'Private Git repository URL')
+    .option('--enable-scanner <boolean>', 'Enable sensitive info scanner (true/false)')
+    .option('--scan-before-push <boolean>', 'Force scan before push (true/false)')
+    .option('--defaults', 'Use all default values without prompts')
+    .option('--repo <url>', 'Remote Git repository URL for sync')
+    .action(async (options: InitOptions) => {
+      await runFirstTimeSetup(options);
     });
 
   // config set

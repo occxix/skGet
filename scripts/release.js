@@ -222,7 +222,7 @@ async function main() {
   const isBeta = type === 'beta';
   
   log('\n╔══════════════════════════════════════╗', 'cyan');
-  log('║       Qcli-Skills 一键发布脚本        ║', 'cyan');
+  log('║       skget 一键发布脚本        ║', 'cyan');
   log('╚══════════════════════════════════════╝', 'cyan');
   
   log(`\n发布类型: ${isBeta ? 'Beta 版本' : type}`, 'blue');
@@ -271,8 +271,8 @@ async function main() {
   log('╚══════════════════════════════════════╝', 'green');
   
   log(`\n版本: ${newVersion}`, 'cyan');
-  log(`安装: npx qskills@${isBeta ? 'beta' : 'latest'} --help`, 'cyan');
-  log(`npm:  https://www.npmjs.com/package/qskills`, 'cyan');
+  log(`安装: npx skget@${isBeta ? 'beta' : 'latest'} --help`, 'cyan');
+  log(`npm:  https://www.npmjs.com/package/skget`, 'cyan');
 }
 
 main().catch(error => {

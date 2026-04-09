@@ -33,7 +33,7 @@ npm run release:beta
 - [ ] 代码已提交到 Git
 - [ ] 所有测试通过：`npm test`
 - [ ] 构建成功：`npm run build`
-- [ ] 本地测试正常：`node bin/qskills.js --help`
+- [ ] 本地测试正常：`node bin/skget.js --help`
 - [ ] 更新 CHANGELOG（如有重大变更）
 - [ ] 检查发布内容：`npm pack --dry-run`
 
@@ -71,13 +71,13 @@ npm whoami
 ### 3. 检查包名
 
 ```bash
-npm search qskills
+npm search skget
 ```
 
 如果包名已被占用，可使用作用域：
 ```json
 {
-  "name": "@your-username/qskills"
+  "name": "@your-username/skget"
 }
 ```
 
@@ -88,14 +88,14 @@ npm search qskills
 npm pack
 
 # 全局安装测试
-npm install -g qskills-1.0.0.tgz
+npm install -g skget-1.0.0.tgz
 
 # 测试命令
-qskills --help
-qskills skill list
+skget --help
+skget skill list
 
 # 卸载测试版本
-npm uninstall -g qskills
+npm uninstall -g skget
 ```
 
 ### 5. 发布
@@ -118,7 +118,7 @@ npm publish --tag next
 
 ```bash
 # 等待几分钟后测试
-npx qskills --help
+npx skget --help
 ```
 
 ---
@@ -178,7 +178,7 @@ npm publish
 1. 配置 `package.json`：
 ```json
 {
-  "name": "@your-username/qskills",
+  "name": "@your-username/skget",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   }
@@ -200,13 +200,13 @@ npm publish
 
 ```bash
 # 最新版本
-npx github:your-username/qskills skill list
+npx github:your-username/skget skill list
 
 # 指定版本
-npx github:your-username/qskills#v1.0.0 skill list
+npx github:your-username/skget#v1.0.0 skill list
 
 # 指定分支
-npx github:your-username/qskills#develop skill list
+npx github:your-username/skget#develop skill list
 ```
 
 ---
@@ -282,21 +282,21 @@ jobs:
 
 ```bash
 # 撤销 24 小时内的版本
-npm unpublish qskills@1.0.1
+npm unpublish skget@1.0.1
 ```
 
 ### 撤销整个包
 
 ```bash
 # 需要等待 24 小时生效
-npm unpublish qskills --force
+npm unpublish skget --force
 ```
 
 ### 弃用版本
 
 ```bash
 # 标记为已弃用（不删除）
-npm deprecate qskills@1.0.0 "此版本有严重 bug，请升级"
+npm deprecate skget@1.0.0 "此版本有严重 bug，请升级"
 ```
 
 ---
@@ -308,7 +308,7 @@ npm deprecate qskills@1.0.0 "此版本有严重 bug，请升级"
 使用作用域：
 ```json
 {
-  "name": "@your-username/qskills"
+  "name": "@your-username/skget"
 }
 ```
 
@@ -339,7 +339,7 @@ npm publish --otp=123456
 等待 npm 同步（通常几分钟）：
 ```bash
 # 使用官方源
-npm install qskills --registry https://registry.npmjs.org
+npm install skget --registry https://registry.npmjs.org
 ```
 
 ### Q: 版本已存在
@@ -356,4 +356,4 @@ npm publish
 
 - [README](../README.md)
 - [测试报告](TEST_REPORT_20260409.md)
-- [技术规格](TECH_SPEC_Qcli-Skills_20260409.md)
+- [技术规格](TECH_SPEC_skget_20260409.md)

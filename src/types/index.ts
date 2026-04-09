@@ -111,10 +111,17 @@ export interface Config {
     knowledgeDir: string;
     agentsDir: string;
   };
-  remotes: {
+  // 新增：单一远程仓库
+  remote?: {
+    url: string;
+    branch: string;
+  };
+  // 旧字段保留用于向后兼容迁移
+  remotes?: {
     public?: RemoteConfig;
     private?: RemoteConfig;
   };
+  envRemotes?: Partial<Record<AIEnvironment, RemoteConfig>>;
   // 多环境配置
   environments: {
     enabled: AIEnvironment[];
@@ -172,10 +179,57 @@ export interface ScanResult {
 
 export interface SyncResult {
   success: boolean;
-  pulled: number;
-  pushed: number;
-  conflicts: string[];
-  errors: string[];
+  action: 'push' | 'pull' | 'sync' | 'status' | 'resolve';
+  environments?: string[];
+  summary: {
+    filesAdded: number;
+    filesModified: number;
+    filesDeleted: number;
+    conflictsCount: number;
+  };
+  conflicts?: ConflictInfo[];
+  errors: SyncError[];
+  commitSha?: string;
+  syncedAt: string;
+}
+
+export interface SyncError {
+  code: string;
+  message: string;
+  file?: string;
+}
+
+export interface ConflictInfo {
+  file: string;
+  resourceType: 'skill' | 'knowledge' | 'agent' | 'index' | 'unknown';
+  environment?: AIEnvironment;
+  type: 'both-modified' | 'delete-modify' | 'modify-delete' | 'add-add';
+  localChecksum: string;
+  remoteChecksum: string;
+  localModifiedAt: string;
+  remoteModifiedAt: string;
+  localSize: number;
+  remoteSize: number;
+  localExists: boolean;
+  remoteExists: boolean;
+}
+
+export interface SyncStatus {
+  remoteConfigured: boolean;
+  remoteUrl?: string;
+  branch?: string;
+  isGitRepo: boolean;
+  connected: boolean;
+  ahead: number;
+  behind: number;
+  modified: string[];
+  untracked: string[];
+  lastSync: string | null;
+}
+
+export interface ConflictResolution {
+  file: string;
+  resolution: 'keep-local' | 'keep-remote' | 'skip';
 }
 
 export interface RepoStatus {
@@ -360,7 +414,7 @@ export type ConflictStatus = 'pending' | 'resolved' | 'skipped';
 /**
  * 冲突解决策略
  */
-export type ConflictResolution = 'local' | 'remote' | 'both';
+export type ConflictResolutionOld = 'local' | 'remote' | 'both';
 
 /**
  * 资源类型（用于冲突记录）

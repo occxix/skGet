@@ -1,4 +1,4 @@
-# Qcli-Skills (qskills)
+# skget (skget)
 
 一款面向个人开发者的 CLI 技能管理工具，支持多 AI 编程助手的技能、知识库、Agent 配置的统一管理与多源同步。
 
@@ -20,17 +20,17 @@
 
 ```bash
 # 查看帮助
-npx qskills --help
+npx skget --help
 
 # 初始化配置（首次使用必须）
-npx qskills config init
+npx skget config init
 ```
 
 ### 方式二：全局安装
 
 ```bash
-npm install -g qskills
-qskills --help
+npm install -g skget
+skget --help
 ```
 
 ---
@@ -55,7 +55,7 @@ qskills --help
 首次使用必须先初始化：
 
 ```bash
-npx qskills config init
+npx skget config init
 ```
 
 按提示完成配置，配置文件位于 `~/.qcli/config.json`。
@@ -63,7 +63,7 @@ npx qskills config init
 ### 2. 查看可用环境
 
 ```bash
-npx qskills skill envs
+npx skget skill envs
 ```
 
 输出示例：
@@ -84,22 +84,22 @@ npx qskills skill envs
 
 ## 技能管理
 
-> **短命令**：`skill` 可缩写为 `s`，如 `qskills s add`、`qskills s list`
+> **短命令**：`skill` 可缩写为 `s`，如 `skget s add`、`skget s list`
 
 ### 添加技能
 
 ```bash
 # 基本用法：添加到指定环境
-npx qskills skill add ./my-script.js --name my-script --env claude
+npx skget skill add ./my-script.js --name my-script --env claude
 
 # 添加文件夹技能
-npx qskills skill add ./my-project --name my-project --type folder --env cursor
+npx skget skill add ./my-project --name my-project --type folder --env cursor
 
 # 添加到所有环境
-npx qskills skill add ./my-tool.js --name my-tool --all
+npx skget skill add ./my-tool.js --name my-tool --all
 
 # 完整参数示例
-npx qskills skill add ./tool.py \
+npx skget skill add ./tool.py \
   --name my-tool \
   --env codebuddy \
   --source private \
@@ -123,69 +123,69 @@ npx qskills skill add ./tool.py \
 
 ```bash
 # 列出所有技能
-npx qskills skill list
+npx skget skill list
 
 # 筛选特定环境
-npx qskills skill list --env cursor
+npx skget skill list --env cursor
 
 # 筛选特定来源
-npx qskills skill list --source public
+npx skget skill list --source public
 
 # 按标签筛选
-npx qskills skill list --tags python,automation
+npx skget skill list --tags python,automation
 
 # JSON 格式输出（便于脚本处理）
-npx qskills skill list --json
+npx skget skill list --json
 ```
 
 ### 复制技能到其他环境
 
 ```bash
 # 将技能从 claude 环境复制到 cursor 环境
-npx qskills skill copy my-script --from claude --to cursor
+npx skget skill copy my-script --from claude --to cursor
 
 # 从公共库安装到指定环境
-npx qskills skill install api-helper --env qwen
+npx skget skill install api-helper --env qwen
 ```
 
 ### 删除技能
 
 ```bash
 # 删除技能（需确认）
-npx qskills skill remove my-script
+npx skget skill remove my-script
 
 # 强制删除（无需确认）
-npx qskills skill remove my-script --force
+npx skget skill remove my-script --force
 
 # 指定环境删除
-npx qskills skill remove my-script --env claude
+npx skget skill remove my-script --env claude
 ```
 
 ---
 
 ## 知识库管理
 
-> **短命令**：`knowledge` 可缩写为 `k`，如 `qskills k add`、`qskills k list`
+> **短命令**：`knowledge` 可缩写为 `k`，如 `skget k add`、`skget k list`
 
 ### 添加知识条目
 
 ```bash
 # 添加文档
-npx qskills knowledge add ./article.md \
+npx skget knowledge add ./article.md \
   --title "API 设计指南" \
   --type document \
   --category api \
   --tags api,design
 
 # 添加代码片段
-npx qskills knowledge add ./snippet.js \
+npx skget knowledge add ./snippet.js \
   --title "工具函数集合" \
   --type code-snippet \
   --category utils \
   --tags javascript,utils
 
 # 添加项目模板
-npx qskills knowledge add ./template/ \
+npx skget knowledge add ./template/ \
   --title "React 项目模板" \
   --type template \
   --category frontend \
@@ -205,40 +205,40 @@ npx qskills knowledge add ./template/ \
 
 ```bash
 # 列出所有
-npx qskills knowledge list
+npx skget knowledge list
 
 # 按类型筛选
-npx qskills knowledge list --type code-snippet
+npx skget knowledge list --type code-snippet
 
 # 按分类筛选
-npx qskills knowledge list --category api
+npx skget knowledge list --category api
 
 # 按环境筛选
-npx qskills knowledge list --env claude
+npx skget knowledge list --env claude
 ```
 
 ### 搜索知识
 
 ```bash
-npx qskills knowledge search "API" --category backend
+npx skget knowledge search "API" --category backend
 ```
 
 ### 删除知识条目
 
 ```bash
-npx qskills knowledge remove <id>
+npx skget knowledge remove <id>
 ```
 
 ---
 
 ## Agent 管理
 
-> **短命令**：`agent` 可缩写为 `a`，如 `qskills a add`、`qskills a list`
+> **短命令**：`agent` 可缩写为 `a`，如 `skget a add`、`skget a list`
 
 ### 添加 Agent 配置
 
 ```bash
-npx qskills agent add ./agent-config/ \
+npx skget agent add ./agent-config/ \
   --name code-reviewer \
   --env claude \
   --tags review,code-quality
@@ -247,7 +247,7 @@ npx qskills agent add ./agent-config/ \
 ### 列出 Agent
 
 ```bash
-npx qskills agent list --env claude
+npx skget agent list --env claude
 ```
 
 ---
@@ -258,31 +258,31 @@ npx qskills agent list --env claude
 
 ```bash
 # 配置公共仓库
-npx qskills config set remotes.public.url https://github.com/user/public-skills.git
-npx qskills config set remotes.public.enabled true
+npx skget config set remotes.public.url https://github.com/user/public-skills.git
+npx skget config set remotes.public.enabled true
 
 # 配置私人仓库
-npx qskills config set remotes.private.url git@github.com:user/private-skills.git
-npx qskills config set remotes.private.enabled true
+npx skget config set remotes.private.url git@github.com:user/private-skills.git
+npx skget config set remotes.private.enabled true
 ```
 
 ### 执行同步
 
 ```bash
 # 同步所有仓库
-npx qskills sync
+npx skget sync
 
 # 只同步公共仓库
-npx qskills sync --source public
+npx skget sync --source public
 
 # 只同步私人仓库
-npx qskills sync --source private
+npx skget sync --source private
 
 # 预览变更（不实际执行）
-npx qskills sync --dry-run
+npx skget sync --dry-run
 
 # 强制覆盖本地
-npx qskills sync --force
+npx skget sync --force
 ```
 
 ---
@@ -306,7 +306,7 @@ npx qskills sync --force
 ### 扫描示例
 
 ```bash
-npx qskills skill add ./config.js --name my-config
+npx skget skill add ./config.js --name my-config
 
 # 若检测到敏感信息：
 # ⚠️  Sensitive information detected:
@@ -320,7 +320,7 @@ npx qskills skill add ./config.js --name my-config
 
 ```bash
 # 明确跳过（需二次确认）
-npx qskills skill add ./public-config.json --name public-config --skip-scan
+npx skget skill add ./public-config.json --name public-config --skip-scan
 ```
 
 ---
@@ -331,27 +331,27 @@ npx qskills skill add ./public-config.json --name public-config --skip-scan
 
 ```bash
 # 列出所有配置
-npx qskills config list
+npx skget config list
 
 # 获取单个配置项
-npx qskills config get storage.baseDir
-npx qskills config get remotes.public.url
+npx skget config get storage.baseDir
+npx skget config get remotes.public.url
 ```
 
 ### 修改配置
 
 ```bash
 # 修改存储路径
-npx qskills config set storage.baseDir ~/.my-skills
+npx skget config set storage.baseDir ~/.my-skills
 
 # 启用自动同步
-npx qskills config set sync.autoSync true
+npx skget config set sync.autoSync true
 
 # 配置同步间隔（分钟）
-npx qskills config set sync.syncInterval 30
+npx skget config set sync.syncInterval 30
 
 # 添加扫描跳过规则
-npx qskills config set scanner.skipPatterns '["*.md", "docs/**", "test/**"]'
+npx skget config set scanner.skipPatterns '["*.md", "docs/**", "test/**"]'
 ```
 
 ### 配置文件示例
@@ -416,7 +416,7 @@ $env:QSKILLS_TOKEN="ghp_your_token_here"
 
 ```bash
 # 使用 SSH URL
-npx qskills config set remotes.private.url git@github.com:user/private-skills.git
+npx skget config set remotes.private.url git@github.com:user/private-skills.git
 ```
 
 ### 创建 GitHub Token
@@ -477,14 +477,14 @@ export QSKILLS_TOKEN=your_token
 ### Q: 如何修改默认存储路径？
 
 ```bash
-npx qskills config set storage.baseDir ~/custom-path
+npx skget config set storage.baseDir ~/custom-path
 ```
 
 ### Q: Windows 路径问题？
 
 使用正斜杠：
 ```bash
-npx qskills skill add "./scripts/tool.js"
+npx skget skill add "./scripts/tool.js"
 ```
 
 ---
@@ -493,8 +493,8 @@ npx qskills skill add "./scripts/tool.js"
 
 ```bash
 # 克隆仓库
-git clone https://github.com/your-username/qskills.git
-cd qskills
+git clone https://github.com/your-username/skget.git
+cd skget
 
 # 安装依赖
 npm install
@@ -506,15 +506,15 @@ npm run build
 npm test
 
 # 本地运行
-node bin/qskills.js --help
+node bin/skget.js --help
 ```
 
 ---
 
 ## 相关文档
 
-- [产品需求文档 (PRD)](docs/PRD_Qcli-Skills_20260409.md)
-- [技术规格文档](docs/TECH_SPEC_Qcli-Skills_20260409.md)
+- [产品需求文档 (PRD)](docs/PRD_skget_20260409.md)
+- [技术规格文档](docs/TECH_SPEC_skget_20260409.md)
 - [测试报告](docs/TEST_REPORT_20260409.md)
 
 ---

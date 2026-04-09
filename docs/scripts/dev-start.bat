@@ -1,9 +1,9 @@
 @echo off
-REM Qcli-Skills 开发环境启动脚本 (Windows)
+REM skget 开发环境启动脚本 (Windows)
 REM 用途: 安装依赖、构建项目、启动开发模式
 
 echo ==========================================
-echo   Qcli-Skills 开发环境启动
+echo   skget 开发环境启动
 echo ==========================================
 
 REM 检查 Node.js
@@ -45,12 +45,12 @@ echo 可用命令:
 echo   npm run dev          # 监听模式编译
 echo   npm run test         # 运行测试
 echo   npm run test:watch   # 监听模式测试
-echo   node bin/qskills.js  # 运行 CLI
+echo   node bin/skget.js  # 运行 CLI
 echo.
 echo 开发命令示例:
-echo   node bin/qskills.js --help
-echo   node bin/qskills.js config init
-echo   node bin/qskills.js skill list
+echo   node bin/skget.js --help
+echo   node bin/skget.js config init
+echo   node bin/skget.js skill list
 echo.
 
 REM 启动开发监听

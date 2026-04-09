@@ -1,11 +1,11 @@
 #!/bin/bash
-# Qcli-Skills 构建脚本
+# skget 构建脚本
 # 用途: 编译 TypeScript、验证构建产物
 
 set -e
 
 echo "=========================================="
-echo "  Qcli-Skills 构建脚本"
+echo "  skget 构建脚本"
 echo "=========================================="
 
 # 进入项目目录
@@ -62,4 +62,4 @@ echo ""
 echo "构建产物位于: dist/"
 echo ""
 echo "测试运行:"
-echo "  node bin/qskills.js --help"
+echo "  node bin/skget.js --help"

@@ -3,7 +3,6 @@ import { addSkill } from './add.js';
 import { removeSkill } from './remove.js';
 import { listSkills } from './list.js';
 import { searchSkills } from './search.js';
-import { syncSkills } from './sync.js';
 import { installSkill } from './install.js';
 import type { AIEnvironment } from '../../types/index.js';
 
@@ -56,14 +55,16 @@ export function initSkillCommands(program: Command): void {
     .option('--tags <tags>', 'filter by tags (comma separated)')
     .action(searchSkills);
 
-  // skill sync
+  // skill sync (deprecated: use `skget sync` instead)
   skill
     .command('sync')
-    .description('Sync skills with remote repository')
+    .description('Sync skills with remote repository (use `skget sync` instead)')
     .option('-e, --env <environment>', 'sync specific environment')
     .option('-s, --source <source>', 'sync source (public|private)')
     .option('--force', 'force overwrite local changes')
-    .action(syncSkills);
+    .action(async () => {
+      console.log('This command is deprecated. Use `skget sync` instead.');
+    });
 
   // skill install (新增: 安装技能到指定环境)
   skill

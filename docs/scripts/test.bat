@@ -1,9 +1,9 @@
 @echo off
-REM Qcli-Skills 测试脚本 (Windows)
+REM skget 测试脚本 (Windows)
 REM 用途: 运行单元测试、生成覆盖率报告
 
 echo ==========================================
-echo   Qcli-Skills 测试套件
+echo   skget 测试套件
 echo ==========================================
 
 REM 进入项目目录

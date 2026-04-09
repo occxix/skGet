@@ -1,10 +1,10 @@
 {
-  "name": "qskills",
+  "name": "skget",
   "version": "1.0.3",
   "description": "CLI skill management tool for developers - manage skills, knowledge base, and sync across devices",
   "type": "module",
   "bin": {
-    "qskills": "./bin/qskills.js"
+    "skget": "./bin/skget.js"
   },
   "main": "./dist/index.js",
   "exports": {
@@ -44,12 +44,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/qskills.git"
+    "url": "https://github.com/your-username/skget.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/qskills/issues"
+    "url": "https://github.com/your-username/skget/issues"
   },
-  "homepage": "https://github.com/your-username/qskills#readme",
+  "homepage": "https://github.com/your-username/skget#readme",
   "dependencies": {
     "commander": "^12.0.0",
     "@inquirer/prompts": "^7.0.0",

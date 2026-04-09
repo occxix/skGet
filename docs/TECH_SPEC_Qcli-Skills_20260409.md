@@ -1,867 +1,521 @@
-# Qcli-Skills 技术方案文档
+# skget 同步功能 - 技术方案文档
 
-**文档版本**: v2.0
+**文档版本**: v3.0
 **创建日期**: 2026/04/09
-**更新日期**: 2026/04/09
-**产品名称**: Qcli-Skills（简称 `qskills`）
+**产品名称**: skget（简称 `skget`）
+**本版本聚焦**: 同步功能重构
 
 ---
 
-## 1. 技术选型
+## 1. 架构方案
 
-### 1.1 核心技术栈
+### 方案对比
 
-| 组件 | 选型 | 说明 |
+| 维度 | 方案 A：data 目录即 Git 仓库 | 方案 B：独立同步目录双向同步 |
 |------|------|------|
-| CLI 框架 | Commander.js | 轻量、API 简洁、社区活跃 |
-| 交互问答 | @inquirer/prompts | 现代化交互式 CLI |
-| Git 操作 | isomorphic-git | 纯 JS 实现，跨平台 |
-| 安全扫描 | 内置正则扫描器 | 轻量，可扩展 |
-| 配置存储 | JSON 文件 | 简单可靠 |
-| Token 存储 | 环境变量 + 可选 keytar | 灵活安全 |
-| 测试框架 | Vitest | 快速、ESM 原生支持 |
-| 输出美化 | chalk + cli-table3 + ora | 终端输出增强 |
+| 实现 | `~/.qcli/data/` 包含 `.git/` | clone 到 `.sync-repo/`，双向拷贝 |
+| 复杂度 | 低 | 高（需维护文件映射、增删改检测） |
+| 数据一致性 | 天然一致 | 需额外保证同步完整性 |
+| 冲突来源 | 仅 Git 级别 | Git 冲突 + 映射冲突（删了但 repo 还在） |
+| 对现有代码侵入 | 只需过滤 `.git/` 目录 | 需改造 Storage 列表方法 |
+| 离线操作 | Git 原生支持 | 离线 commit 后仍需两步同步 |
 
-### 1.2 技术选型对比
+### 推荐：方案 A
 
-| 方案 | 优势 | 劣势 | 推荐度 |
-|------|------|------|--------|
-| **方案 A：轻量级** | 依赖少、包体积小、无系统依赖 | 内置扫描覆盖有限 | 推荐 |
-| 方案 B：企业级 | 插件化、功能完善 | 依赖系统环境、包体积大 | 备选 |
+1. 用户决策了单一仓库，方案 A 天然满足
+2. 当前 `skill/sync.ts` 的 bug 正是方案 B 导致的（同步断路）
+3. 对 Storage 类侵入最小
+4. isomorphic-git 支持 init + addRemote + fetch 到已有文件目录
 
-**推荐：方案 A（轻量级方案）**
-
----
-
-## 2. 系统架构设计
-
-### 2.1 整体架构
+### 目标存储结构
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                           CLI Layer                                  │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐          │
-│  │   Commander  │───▶│   Handler    │───▶│   Inquirer   │          │
-│  │   (解析参数)  │    │   (路由分发)  │    │  (交互问答)   │          │
-│  └──────────────┘    └──────────────┘    └──────────────┘          │
-└─────────────────────────────────────────────────────────────────────┘
-                                 │
-                                 ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                         Service Layer                                │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐          │
-│  │ SkillService │    │ KnowledgeSvc │    │ AgentService │          │
-│  │ (技能管理)    │    │ (知识库管理)  │    │ (Agent管理)   │          │
-│  └──────────────┘    └──────────────┘    └──────────────┘          │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐          │
-│  │ InstallSvc   │    │  SyncService │    │  EnvService  │          │
-│  │ (下载安装)    │    │  (同步控制)   │    │  (环境管理)   │          │
-│  └──────────────┘    └──────────────┘    └──────────────┘          │
-└─────────────────────────────────────────────────────────────────────┘
-                                 │
-                                 ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                          Core Layer                                  │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐          │
-│  │   Storage    │    │   GitSync    │    │   Scanner    │          │
-│  │ (本地存储)    │    │ (Git 操作)   │    │ (安全扫描)    │          │
-│  └──────────────┘    └──────────────┘    └──────────────┘          │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐          │
-│  │ Builtins     │    │   Conflict   │    │   Version    │          │
-│  │ (内置库)      │    │  (冲突检测)   │    │  (版本管理)   │          │
-│  └──────────────┘    └──────────────┘    └──────────────┘          │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### 2.2 模块划分
-
-```
-qskills/
-├── bin/qskills.js              # CLI 入口
-├── src/
-│   ├── commands/               # 命令模块
-│   │   ├── skill/              # skill 子命令
-│   │   ├── knowledge/          # knowledge 子命令
-│   │   ├── agent/              # agent 子命令（新增）
-│   │   ├── install.ts          # 安装命令（新增）
-│   │   ├── download.ts         # 下载命令（新增）
-│   │   ├── sync.ts             # 同步命令
-│   │   ├── config.ts           # 配置管理
-│   │   └── env.ts              # 环境管理（新增）
-│   │
-│   ├── core/                   # 核心模块
-│   │   ├── storage.ts          # 本地存储管理
-│   │   ├── git-sync.ts         # Git 同步引擎
-│   │   ├── scanner.ts          # 敏感信息扫描
-│   │   ├── conflict.ts         # 冲突检测（新增）
-│   │   ├── version.ts          # 版本管理（新增）
-│   │   ├── builtins.ts         # 内置公共库（新增）
-│   │   └── init.ts             # 初始化
-│   │
-│   ├── types/index.ts          # 类型定义
-│   └── utils/                  # 工具函数
-│
-├── builtins/                   # 内置公共库（新增）
-│   ├── skills/
-│   ├── knowledge/
-│   └── agents/
-│
-└── package.json
+~/.qcli/
+├── config.json              # 配置文件（不纳入 Git）
+├── data/                    # Git 仓库根目录
+│   ├── .git/                # Git 仓库元数据
+│   ├── .gitignore           # 排除临时文件
+│   ├── .gitattributes       # 统一换行符
+│   ├── index.json           # 本地索引（纳入 Git）
+│   ├── skills/              # 技能（按环境分目录）
+│   │   ├── claude/
+│   │   ├── cursor/
+│   │   └── ...
+│   ├── knowledge/           # 知识库
+│   └── agents/              # Agent 配置
 ```
 
 ---
 
-## 3. 数据模型设计
+## 2. 数据模型变更
 
-### 3.1 配置文件结构
+### 2.1 Config 类型
 
 ```typescript
 interface Config {
   version: string;
   initialized: boolean;
   initializedAt?: string;
-
   storage: {
     baseDir: string;
     skillsDir: string;
     knowledgeDir: string;
-    agentsDir: string;  // 新增
+    agentsDir: string;
   };
-
-  remotes: {
-    [name: string]: {
-      url: string;
-      branch: string;
-      enabled: boolean;
-      type: 'public' | 'private';
-    }
+  // 新增：单一远程仓库
+  remote?: {
+    url: string;
+    branch: string;      // 默认 'main'
   };
-
-  environments: {
-    enabled: AIEnvironment[];
-    default: AIEnvironment;
+  // 旧字段保留用于向后兼容迁移
+  remotes?: {
+    public?: RemoteConfig;
+    private?: RemoteConfig;
   };
-
-  sync: {
-    autoSync: boolean;
-    syncInterval: number;
-    confirmBeforeSync: boolean;
-  };
-
-  scanner: {
-    enabled: boolean;
-    skipPatterns: string[];
-    customPatterns: SecretPattern[];
-  };
+  envRemotes?: Partial<Record<AIEnvironment, RemoteConfig>>;
+  // ... 其余字段不变
 }
 ```
 
-### 3.2 Skill/Knowledge 元数据结构
+### 2.2 同步结果类型
 
 ```typescript
-interface SkillMeta {
-  id: string;
-  name: string;
-  version: string;
-  description: string;
-  author: string;
-  tags: string[];
-  type: 'single' | 'folder';
-  entry: string;
-  files?: string[];
-  source: 'public' | 'private' | 'builtin';  // 新增 builtin
-  environment: AIEnvironment;
-  remoteUrl?: string;
-  versionHistory?: VersionRecord[];
-  checksum: string;
-  createdAt: string;
-  updatedAt: string;
+interface SyncResult {
+  success: boolean;
+  action: 'push' | 'pull' | 'sync' | 'status';
+  environments?: string[];
+  summary: {
+    filesAdded: number;
+    filesModified: number;
+    filesDeleted: number;
+    conflictsCount: number;
+  };
+  conflicts?: ConflictInfo[];
+  errors: SyncError[];
+  commitSha?: string;
+  syncedAt: string;
 }
 
-interface KnowledgeItem {
-  id: string;
-  title: string;
-  type: 'document' | 'code-snippet' | 'template' | 'note';
-  path: string;
-  tags: string[];
-  category: string;
-  source: 'public' | 'private' | 'builtin';
-  environment: AIEnvironment;
-  version: string;
-  checksum: string;
-  createdAt: string;
-  updatedAt: string;
-}
-```
-
-### 3.3 Agent 配置包结构（新增）
-
-```typescript
-interface AgentConfig {
-  id: string;
-  name: string;
-  version: string;
-  description: string;
-  author: string;
-  tags: string[];
-  environment: AIEnvironment;
-  source: 'public' | 'private' | 'builtin';
-
-  // Agent 核心配置
-  systemPrompt: string;           // 系统提示词
-  tools: AgentTool[];             // 工具配置
-  context: AgentContext;          // 上下文配置
-  settings: AgentSettings;        // 其他设置
-
-  versionHistory?: VersionRecord[];
-  checksum: string;
-  createdAt: string;
-  updatedAt: string;
+interface SyncError {
+  code: string;           // 'REMOTE_NOT_CONFIGURED' | 'NETWORK_ERROR' | 'PUSH_REJECTED' | 'AUTH_FAILED'
+  message: string;
+  file?: string;
 }
 
-interface AgentTool {
-  name: string;
-  description: string;
-  type: 'function' | 'resource' | 'prompt';
-  config: Record<string, any>;
-  enabled: boolean;
-}
-
-interface AgentContext {
-  maxTokens?: number;
-  temperature?: number;
-  includePaths?: string[];
-  excludePatterns?: string[];
-  envVariables?: Record<string, string>;
-}
-```
-
-### 3.4 本地索引结构
-
-```typescript
-interface LocalIndex {
-  version: string;
-  skills: Record<AIEnvironment, string[]>;
-  knowledge: Record<AIEnvironment, string[]>;
-  agents: Record<AIEnvironment, string[]>;  // 新增
-
-  lastSync: { [repoName: string]: string | null };
-  checksum: { [repoName: string]: string };
-  pendingConflicts?: ConflictRecord[];  // 新增
-}
-
-interface ConflictRecord {
-  resourceId: string;
-  resourceType: 'skill' | 'knowledge' | 'agent';
-  localVersion: string;
-  remoteVersion: string;
+interface ConflictInfo {
+  file: string;                    // 相对 data/ 的路径
+  resourceType: 'skill' | 'knowledge' | 'agent' | 'index' | 'unknown';
+  environment?: AIEnvironment;     // 从 file 路径推导
+  type: 'both-modified' | 'delete-modify' | 'modify-delete' | 'add-add';
   localChecksum: string;
   remoteChecksum: string;
-  detectedAt: string;
-  status: 'pending' | 'resolved' | 'skipped';
-  resolution?: 'local' | 'remote' | 'both';
+  localModifiedAt: string;
+  remoteModifiedAt: string;
+  localSize: number;
+  remoteSize: number;
+  localExists: boolean;
+  remoteExists: boolean;
+}
+
+interface SyncStatus {
+  remoteConfigured: boolean;
+  remoteUrl?: string;
+  branch?: string;
+  isGitRepo: boolean;
+  connected: boolean;
+  ahead: number;
+  behind: number;
+  modified: string[];
+  untracked: string[];
+  lastSync: string | null;
+}
+
+interface ConflictResolution {
+  file: string;
+  resolution: 'keep-local' | 'keep-remote' | 'skip';
 }
 ```
 
-### 3.5 AI 环境类型
+---
+
+## 3. 模块设计
+
+### 3.1 SyncService
 
 ```typescript
-type AIEnvironment = 'claude' | 'cursor' | 'qwen' | 'codex' | 'codebuddy' | 'common';
+// src/core/sync-service.ts
 
-const AI_ENVIRONMENTS: Record<AIEnvironment, EnvironmentConfig> = {
-  claude: { name: 'claude', displayName: 'Claude Code', configDir: '.claude' },
-  cursor: { name: 'cursor', displayName: 'Cursor', configDir: '.cursor' },
-  qwen: { name: 'qwen', displayName: '通义灵码', configDir: '.qwen' },
-  codex: { name: 'codex', displayName: 'OpenAI Codex', configDir: '.codex' },
-  codebuddy: { name: 'codebuddy', displayName: 'CodeBuddy Code', configDir: '.codebuddy' },
-  common: { name: 'common', displayName: '通用技能', configDir: '' }
-};
+class SyncService {
+  constructor(
+    private gitSync: GitSync,
+    private storage: Storage,
+    private scanner: SecurityScanner
+  ) {}
+
+  // 初始化 Git 仓库
+  async ensureRepo(remote: { url: string; branch: string }): Promise<void>;
+  // 流程：检查 .git → git init → addRemote → addAll → commit → push
+
+  // Push
+  async push(options: SyncOptions): Promise<SyncResult>;
+  // 流程：安全扫描 → commit → push → 返回结果
+
+  // Pull
+  async pull(options: SyncOptions): Promise<SyncResult>;
+  // 流程：fetch → 检测冲突 → merge(ff) → 返回结果
+
+  // 双向 Sync
+  async sync(options: SyncOptions): Promise<SyncResult>;
+  // 流程：pull → 有冲突则返回 → 无冲突则 push
+
+  // 状态查询
+  async status(): Promise<SyncStatus>;
+
+  // 冲突解决（P1）
+  async resolve(resolutions: ConflictResolution[]): Promise<SyncResult>;
+
+  // 预览（P1）
+  async preview(options: SyncOptions): Promise<SyncResult>;
+}
+
+interface SyncOptions {
+  environments?: AIEnvironment[];
+  json: boolean;
+  dryRun: boolean;
+  force: boolean;
+  strategy?: 'local-first' | 'remote-first';
+}
+
+function getSyncService(): Promise<SyncService>;
+```
+
+**与现有 GitSync 的关系**：组合模式，SyncService 持有 GitSync 实例，负责业务编排。
+
+### 3.2 GitSync 增强
+
+```typescript
+// src/core/git-sync.ts — 在现有基础上新增
+
+class GitSync {
+  // === 现有方法保持不变 ===
+  async clone(): Promise<void>;
+  async pull(): Promise<SyncResult>;
+  async push(): Promise<SyncResult>;
+  async commit(message: string): Promise<string | null>;
+  async getStatus(): Promise<RepoStatus>;
+  async fetch(remoteName?: string): Promise<void>;
+  async addRemotes(remotes: { name: string; url: string }[]): Promise<void>;
+
+  // === 新增方法 ===
+
+  // 获取当前 HEAD commit SHA
+  async getCurrentCommit(): Promise<string | null>;
+
+  // 获取远程 tracking branch SHA
+  async getRemoteCommit(): Promise<string | null>;
+
+  // 精确 ahead/behind 计数
+  async getAheadBehind(remoteRef?: string): Promise<{ ahead: number; behind: number }>;
+
+  // 合并远程变更
+  async merge(options?: { fastForward?: boolean }): Promise<{
+    success: boolean;
+    mergeConflicts: string[];
+  }>;
+
+  // 解决合并冲突
+  async resolveMergeConflict(filepath: string, strategy: 'ours' | 'theirs'): Promise<void>;
+
+  // 读取文件内容（用于 diff 对比）
+  async readFile(filepath: string, ref?: string): Promise<Uint8Array | null>;
+
+  // 读取文件最后修改时间
+  async getFileModifiedTime(file: string): Promise<string>;
+
+  // 读取文件 checksum
+  async getFileChecksum(file: string): Promise<string>;
+}
+```
+
+### 3.3 Storage 适配
+
+```typescript
+// src/core/storage.ts — 最小改动
+
+// listFiles() 和 listDirectories() 中过滤 .git 目录
+async listFiles(dir: string, pattern?: RegExp): Promise<string[]> {
+  // ... 现有逻辑
+  // 新增：过滤 .git 目录
+  files = files.filter(f => !f.includes('.git'));
+  return files;
+}
 ```
 
 ---
 
 ## 4. CLI 命令设计
 
-### 4.1 完整命令列表
-
-```bash
-qskills [command] [options]
-
-Commands:
-  install <name>          安装资源（从内置库或远程仓库）
-    --env <env>           目标环境
-    --from <source>       来源：builtin/public/private
-    --version <ver>       指定版本
-
-  download                从远程仓库下载资源
-    --env <env>           指定环境
-    --source <repo>       指定仓库
-    --all                 下载全部资源
-    --force               强制覆盖本地
-
-  sync                    同步资源到远程仓库
-    --env <env>           指定环境
-    --source <repo>       指定仓库
-    --all                 同步全部资源
-    --force               强制推送
-    --dry-run             预览变更
-
-  skill <action>          技能管理
-    add <path> --env <env> --name <name>
-    remove <name> --env <env>
-    list [--env <env>]
-    copy <name> --from <env> --to <env>
-
-  knowledge <action>      知识库管理
-    add/remove/list/copy（同 skill）
-
-  agent <action>          Agent 管理（新增）
-    add <path> --env <env> --name <name>
-    remove <name> --env <env>
-    list [--env <env>]
-    deploy <name> --env <env>  # 部署 Agent
-    copy <name> --from <env> --to <env>
-
-  env <action>            环境管理（新增）
-    list                  列出所有环境
-    enable/disable <env>  启用/禁用环境
-
-  config <action>         配置管理
-    init/set/get/list
-
-  builtins <action>       内置库管理（新增）
-    list                  列出内置资源
-    install <name>        安装内置资源
-```
-
-### 4.2 npx 模式设计
-
-```bash
-# 无配置模式 - 只显示内置公共资源
-npx qskills list
-npx qskills install <name>
-
-# 有配置模式 - 显示仓库 + 内置资源
-npx qskills list --repo <url>
-npx qskills install <name> --env claude
-```
-
----
-
-## 5. 核心功能实现
-
-### 5.1 内置公共库管理
+### Commander 注册
 
 ```typescript
-// src/core/builtins.ts
+// src/commands/sync.ts — 重写
 
-interface BuiltinResource {
-  name: string;
-  type: 'skill' | 'knowledge' | 'agent';
-  description: string;
-  tags: string[];
-  version: string;
-  path: string;
-}
-
-class BuiltinManager {
-  private resources: Map<string, BuiltinResource>;
-
-  async load(): Promise<void>;
-  async list(filter?: { type?: string; tags?: string[] }): Promise<BuiltinResource[]>;
-  async get(name: string): Promise<BuiltinResource | null>;
-  async install(name: string, targetEnv: AIEnvironment): Promise<void>;
-}
+program
+  .command('sync')
+  .description('Sync with remote repository')
+  .argument('[action]', 'sync action: push | pull | status | resolve')
+  .option('-e, --env <envs...>', 'sync specific environments')
+  .option('--all', 'sync all environments (default)')
+  .option('--pull', 'pull from remote only')
+  .option('--full', 'bidirectional sync (default behavior)')
+  .option('--status', 'show sync status')
+  .option('--json', 'output as JSON')
+  .option('--dry-run', 'preview changes')
+  .option('--force', 'force overwrite')
+  .option('--resolution <json>', 'conflict resolution JSON (use with resolve action)')
+  .action(syncHandler);
 ```
 
-### 5.2 版本冲突检测
+### 命令路由
 
 ```typescript
-// src/core/conflict.ts
+async function syncHandler(action: string | undefined, options: SyncCliOptions) {
+  const service = await getSyncService();
 
-interface ConflictResult {
-  hasConflict: boolean;
-  conflictType: 'version' | 'content' | 'deleted';
-  localVersion: string;
-  remoteVersion: string;
-  suggestions: ConflictSuggestion[];
-}
-
-class ConflictManager {
-  async detect(
-    local: ResourceMeta[],
-    remote: ResourceMeta[]
-  ): Promise<ConflictRecord[]>;
-
-  async resolve(
-    conflict: ConflictRecord,
-    resolution: 'local' | 'remote' | 'both'
-  ): Promise<void>;
-
-  async promptUser(conflicts: ConflictRecord[]): Promise<void>;
-}
-```
-
-### 5.3 批量操作
-
-```typescript
-// src/core/batch.ts
-
-interface BatchOperation {
-  type: 'download' | 'sync' | 'install' | 'delete';
-  resources: Array<{
-    name: string;
-    type: 'skill' | 'knowledge' | 'agent';
-    environment?: AIEnvironment;
-  }>;
-  options: {
-    force?: boolean;
-    dryRun?: boolean;
-    onConflict?: 'prompt' | 'keep-local' | 'keep-remote';
-  };
-}
-
-interface BatchResult {
-  total: number;
-  success: number;
-  failed: number;
-  skipped: number;
-  conflicts: ConflictRecord[];
-}
-
-class BatchProcessor {
-  async execute(operation: BatchOperation): Promise<BatchResult>;
-  async preview(operation: BatchOperation): Promise<PreviewResult>;
-}
-```
-
-### 5.4 Agent 部署
-
-```typescript
-// src/core/agent-deploy.ts
-
-interface AgentDeployer {
-  deploy(agent: AgentConfig, environment: AIEnvironment): Promise<void>;
-  generateConfig(agent: AgentConfig, environment: AIEnvironment): Promise<string>;
-  validate(agent: AgentConfig): ValidationResult;
-}
-
-// 各环境配置生成器
-const ENV_CONFIG_GENERATORS: Record<AIEnvironment, ConfigGenerator> = {
-  claude: new ClaudeConfigGenerator(),
-  cursor: new CursorConfigGenerator(),
-  qwen: new QwenConfigGenerator(),
-  codex: new CodexConfigGenerator(),
-  codebuddy: new CodeBuddyConfigGenerator(),
-  common: null
-};
-```
-
----
-
-## 6. 存储结构设计
-
-### 6.1 本地存储目录结构
-
-```
-~/.qcli/
-├── config.json                    # 配置文件
-├── data/
-│   ├── index.json                 # 本地索引
-│   ├── skills/                    # 技能存储（按环境分目录）
-│   │   ├── claude/
-│   │   ├── cursor/
-│   │   ├── qwen/
-│   │   ├── codex/
-│   │   ├── codebuddy/
-│   │   └── common/
-│   ├── knowledge/                 # 知识库存储（按环境分目录）
-│   │   └── ...
-│   └── agents/                    # Agent 存储（新增，按环境分目录）
-│       └── ...
-├── repos/                         # Git 仓库克隆
-│   ├── public/
-│   └── private/
-└── cache/                         # 缓存
-```
-
-### 6.2 内置公共库结构
-
-```
-builtins/
-├── index.json                     # 内置资源索引
-├── skills/
-│   ├── http-request/
-│   ├── file-operations/
-│   └── git-helper/
-├── knowledge/
-│   ├── api-design-guide/
-│   └── clean-code-patterns/
-└── agents/
-    ├── code-reviewer/
-    ├── doc-writer/
-    └── test-helper/
-```
-
----
-
-## 7. 安全设计
-
-### 7.1 敏感信息扫描规则
-
-```typescript
-const DEFAULT_PATTERNS: SecretPattern[] = [
-  { name: 'aws-access-key', pattern: /AKIA[0-9A-Z]{16}/g, severity: 'high' },
-  { name: 'github-token', pattern: /ghp_[a-zA-Z0-9]{36}/g, severity: 'high' },
-  { name: 'private-key', pattern: /-----BEGIN.*PRIVATE KEY-----/g, severity: 'high' },
-  { name: 'api-key-generic', pattern: /(?i)(api[_-]?key)\s*[:=]\s*['"]?[a-zA-Z0-9_\-]{20,}/g, severity: 'medium' },
-  { name: 'jwt-token', pattern: /eyJ[a-zA-Z0-9_-]*\.eyJ[a-zA-Z0-9_-]*/g, severity: 'medium' },
-  { name: 'database-url', pattern: /(mysql|postgres|mongodb):\/\/[^:]+:[^@]+@/g, severity: 'high' }
-];
-```
-
-### 7.2 Token 管理
-
-- 优先级：环境变量 > 配置文件 > 系统密钥环
-- 存储：环境变量 `QSKILLS_TOKEN` 或系统密钥环（keytar）
-
----
-
-## 8. 错误码定义
-
-| 错误码 | 说明 | 处理建议 |
-|--------|------|----------|
-| `AUTH_MISSING` | Token 未配置 | 引导用户配置 Token |
-| `AUTH_INVALID` | Token 无效或过期 | 提示重新认证 |
-| `NETWORK_OFFLINE` | 网络不可用 | 检查网络连接 |
-| `CONFLICT_DETECTED` | 检测到同步冲突 | 用户选择处理策略 |
-| `VERSION_DOWNGRADE` | 版本下降警告 | 提示用户确认 |
-| `RESOURCE_NOT_FOUND` | 资源不存在 | 检查资源名称 |
-| `ENV_NOT_SUPPORTED` | 环境不支持 | 检查环境名称 |
-
----
-
-## 9. 依赖清单
-
-```json
-{
-  "dependencies": {
-    "commander": "^12.0.0",
-    "@inquirer/prompts": "^7.0.0",
-    "isomorphic-git": "^1.27.0",
-    "chalk": "^5.3.0",
-    "ora": "^8.0.0",
-    "cli-table3": "^0.6.0"
-  },
-  "devDependencies": {
-    "typescript": "^5.0.0",
-    "vitest": "^1.0.0",
-    "@types/node": "^20.0.0"
+  // 子命令路由
+  if (action === 'push' || options.pull === false && options.status === false) {
+    return service.push(mapOptions(options));
   }
+  if (action === 'pull' || options.pull) {
+    return service.pull(mapOptions(options));
+  }
+  if (action === 'status' || options.status) {
+    return outputResult(await service.status(), options.json);
+  }
+  if (action === 'resolve') {
+    const resolutions = JSON.parse(options.resolution);
+    return service.resolve(resolutions);
+  }
+
+  // 默认：双向 sync
+  return service.sync(mapOptions(options));
 }
 ```
 
 ---
 
-## 10. 风险提示
+## 5. 核心流程
 
-| 风险 | 影响 | 缓解措施 |
+### 5.1 初始化流程
+
+```
+skget sync（首次）
+│
+├─ 1. 检查 data/.git 是否存在
+│   ├─ 不存在 → git.init({ dir: dataDir, defaultBranch: 'main' })
+│   └─ 存在 → 跳过
+│
+├─ 2. 检查 remote 'origin' 是否存在
+│   ├─ 不存在 → git.addRemote({ name: 'origin', url })
+│   └─ 存在 → 跳过
+│
+├─ 3. 创建 .gitignore + .gitattributes
+│   ├─ .gitignore: *.tmp, *.log, .DS_Store, Thumbs.db
+│   └─ .gitattributes: * text=auto eol=lf
+│
+├─ 4. git.add + commit（初始提交）
+│
+├─ 5. git.push 到远程
+│
+└─ 6. 更新 config.remote
+```
+
+### 5.2 Push 流程
+
+```
+skget sync push
+│
+├─ 1. ensureRepo()
+├─ 2. getStatus() → 无变更？ → 返回 filesChanged=0
+├─ 3. 安全扫描（若启用）→ 发现 secrets？ → 报错退出
+├─ 4. git.commit('sync: push {timestamp}')
+├─ 5. git.push()
+│   ├─ 成功 → 返回 SyncResult
+│   └─ 失败（远程有新提交）→ 返回 PUSH_REJECTED 错误
+└─ 6. 更新 lastSyncAt
+```
+
+### 5.3 Pull 流程
+
+```
+skget sync pull
+│
+├─ 1. ensureRepo()
+├─ 2. git.fetch('origin')
+│   └─ 网络失败 → 返回 NETWORK_ERROR
+├─ 3. getAheadBehind() → behind === 0？ → 返回 "Already up to date"
+├─ 4. 检查本地未提交修改
+│   └─ 有修改 + 非 force → 检测冲突
+├─ 5. git.merge({ fastForward: true })
+│   ├─ ff 成功 → 重建 index.json → 返回结果
+│   └─ 需要 merge → git.merge({ fastForward: false })
+│       ├─ 无冲突 → 返回结果
+│       └─ 有冲突 → 收集 ConflictInfo[] → 返回（不自动 push）
+└─ 6. 输出结果
+```
+
+### 5.4 Sync 流程
+
+```
+skget sync（默认）
+│
+├─ 1. 执行 pull
+├─ 2. pull 有冲突？ → 返回冲突结果，不 push
+├─ 3. pull 成功 → 执行 push
+├─ 4. push 被拒？ → 返回 SYNC_FAILED
+└─ 5. 返回合并结果
+```
+
+### 5.5 环境过滤实现
+
+```typescript
+// push 时只 add 指定环境的目录
+const envDirs = options.environments || ALL_ENVIRONMENTS;
+const pathsToAdd = ['index.json']; // 始终 add 索引
+
+for (const env of envDirs) {
+  pathsToAdd.push(`skills/${env}`);
+  pathsToAdd.push(`knowledge/${env}`);
+  pathsToAdd.push(`agents/${env}`);
+}
+
+for (const path of pathsToAdd) {
+  await git.add({ dir: dataDir, filepath: path });
+}
+```
+
+---
+
+## 6. 配置迁移
+
+```typescript
+// src/core/migration.ts
+
+export async function migrateConfig(config: Config): Promise<Config> {
+  if (config.remote) return config; // 已迁移
+
+  const repo = config.remotes?.private || config.remotes?.public;
+  if (repo?.url) {
+    config.remote = {
+      url: repo.url,
+      branch: repo.branch || 'main'
+    };
+  }
+
+  return config;
+}
+```
+
+---
+
+## 7. 文件变更清单
+
+### 新增文件
+
+| 文件 | 职责 |
+|------|------|
+| `src/core/sync-service.ts` | 同步服务主逻辑（编排层） |
+| `src/core/conflict-detector.ts` | 冲突检测器 |
+| `src/core/migration.ts` | 配置迁移 |
+| `src/core/sync.test.ts` | 同步功能单元测试 |
+
+### 修改文件
+
+| 文件 | 变更 |
+|------|------|
+| `src/types/index.ts` | Config 新增 `remote` 字段；新增 SyncResult/SyncStatus/ConflictInfo 等类型 |
+| `src/core/git-sync.ts` | 新增 getCurrentCommit/getRemoteCommit/getAheadBehind/merge/resolveMergeConflict 等方法 |
+| `src/commands/sync.ts` | 完全重写：子命令路由 + SyncService 调用 |
+| `src/core/storage.ts` | listFiles/listDirectories 过滤 `.git/` 目录 |
+| `src/core/init.ts` | config init 新增 `--repo` 选项 |
+| `src/commands/config.ts` | config init 注册 `--repo` 选项 |
+| `src/index.ts` | 确保新 sync 命令注册正确 |
+
+### 删除文件
+
+| 文件 | 原因 |
+|------|------|
+| `src/commands/skill/sync.ts` | 同步逻辑统一收归 `skget sync` |
+
+---
+
+## 8. 风险评估
+
+### isomorphic-git 限制
+
+| 风险 | 缓解 |
+|------|------|
+| 不支持完整 merge 冲突标记（`<<<<<<<`） | 用 fetch + readFile 对比代替 merge；冲突时停止并报告 |
+| 不支持 SSH 协议 | 只用 HTTPS URL |
+| 大文件性能差（内存处理） | .gitignore 排除大文件；data 目录主要是文本文件 |
+| push 被拒不像原生 Git 友好提示 | push 前 fetch + getAheadBehind 主动检测 |
+| partial clone 不支持 | 用 shallow clone（depth: 1）初始化 |
+
+### Windows 兼容性
+
+| 风险 | 缓解 |
+|------|------|
+| 路径分隔符 `\` vs `/` | path.join() + Git 路径统一 `/` |
+| 换行符 CRLF vs LF | .gitattributes: `* text=auto eol=lf` |
+| 文件权限（无 execute bit） | isomorphic-git 忽略 filemode 差异 |
+
+### 断网/超时
+
+| 场景 | 处理 |
+|------|------|
+| clone 断网 | 返回 NETWORK_ERROR |
+| push 断网 | 本地 commit 已完成，下次重试 |
+| pull 断网 | 本地数据不受影响 |
+| 认证失败 | 返回 AUTH_FAILED + 提示配置凭据 |
+
+### 数据安全
+
+- isomorphic-git 完全本地运行，不发送数据到第三方
+- push 前复用 scanner.ts 扫描 secrets
+- .gitignore 排除临时文件和 IDE 配置
+
+---
+
+## 9. .gitignore / .gitattributes
+
+```gitignore
+# ~/.qcli/data/.gitignore
+*.tmp
+*.log
+*.bak
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+```
+
+```gitattributes
+# ~/.qcli/data/.gitattributes
+* text=auto eol=lf
+```
+
+---
+
+## 10. 实现优先级
+
+| 阶段 | 内容 | 涉及文件 |
 |------|------|----------|
-| Windows 路径兼容性 | 文件操作可能失败 | 使用 path 模块统一处理 |
-| Git 认证问题 | 推送失败 | 支持多种认证方式 |
-| 敏感信息误报 | 用户困扰 | 提供白名单和跳过选项 |
-| 大文件处理 | 性能问题 | 限制单文件大小 |
-| 网络不稳定 | 同步失败 | 断点续传 + 重试机制 |
-
----
-
-## 11. 扩展点预留
-
-### 11.1 插件系统
-
-```typescript
-interface IPlugin {
-  name: string;
-  version: string;
-  hooks: {
-    'pre-add'?: (context: AddContext) => Promise<void>;
-    'post-add'?: (context: AddContext) => Promise<void>;
-    'pre-sync'?: (context: SyncContext) => Promise<void>;
-    'post-sync'?: (context: SyncContext) => Promise<void>;
-  };
-}
-```
-
-### 11.2 自定义扫描规则
-
-```typescript
-interface CustomScanRule {
-  name: string;
-  pattern: string | RegExp;
-  severity: 'high' | 'medium' | 'low';
-  description?: string;
-}
-```
-
-### 11.3 多仓库支持
-
-```typescript
-interface RemoteConfig {
-  remotes: {
-    [name: string]: {
-      url: string;
-      branch: string;
-      enabled: boolean;
-      type: 'public' | 'private';
-    }
-  }
-}
-```
-
----
-
-## 12. 边界条件处理
-
-### 12.1 离线场景处理
-
-```typescript
-// src/core/network.ts
-
-interface NetworkDetector {
-  isOnline(): Promise<boolean>;
-  getLastChecked(): Date;
-}
-
-// src/core/queue.ts
-
-interface OperationQueue {
-  // 待同步操作队列
-  pendingOperations: QueuedOperation[];
-  
-  // 添加操作到队列
-  enqueue(operation: SyncOperation): void;
-  
-  // 处理队列（网络恢复后调用）
-  processQueue(): Promise<ProcessResult>;
-  
-  // 持久化队列到本地
-  persist(): Promise<void>;
-  
-  // 从本地恢复队列
-  restore(): Promise<void>;
-}
-
-interface QueuedOperation {
-  id: string;
-  type: 'push' | 'pull' | 'sync';
-  resource: string;
-  env: AIEnvironment;
-  timestamp: string;
-  retries: number;
-  maxRetries: number;
-}
-```
-
-### 12.2 版本冲突检测
-
-```typescript
-// src/core/conflict.ts
-
-interface ConflictManager {
-  // 检测冲突
-  detect(
-    local: ResourceMeta,
-    remote: ResourceMeta
-  ): Promise<ConflictResult>;
-  
-  // 批量检测
-  detectBatch(
-    resources: Array<{ local?: ResourceMeta; remote: ResourceMeta }>
-  ): Promise<ConflictResult[]>;
-  
-  // 交互式解决（使用 @inquirer/prompts）
-  resolveInteractive(conflict: ConflictResult): Promise<Resolution>;
-  
-  // 自动解决（按策略）
-  resolveAuto(
-    conflict: ConflictResult,
-    strategy: 'keep-local' | 'keep-remote'
-  ): Promise<Resolution>;
-}
-
-interface ConflictResult {
-  hasConflict: boolean;
-  conflictType: 'version' | 'content' | 'deleted';
-  localVersion: string;
-  remoteVersion: string;
-  localChecksum: string;
-  remoteChecksum: string;
-  suggestions: string[];
-}
-
-type Resolution = 'keep-local' | 'keep-remote' | 'keep-both' | 'skip';
-```
-
-### 12.3 大量资源性能优化
-
-```typescript
-// src/core/storage.ts - 分页查询
-
-interface ListOptions {
-  env?: AIEnvironment;
-  limit?: number;      // 默认 50
-  offset?: number;     // 默认 0
-  sortBy?: 'name' | 'updatedAt' | 'createdAt';
-  sortOrder?: 'asc' | 'desc';
-}
-
-// 大文件阈值
-const LARGE_FILE_THRESHOLD = 10 * 1024 * 1024;  // 10MB
-
-// 资源数量阈值
-const RESOURCE_COUNT_THRESHOLD = 500;
-
-// 懒加载实现
-class LazyResourceLoader {
-  async loadPage(page: number): Promise<ResourcePage>;
-  async getTotalCount(): Promise<number>;
-}
-```
-
----
-
-## 13. 各 AI 环境配置适配规范
-
-### 13.1 Claude Code
-
-```
-配置目录: ~/.claude/
-技能存放: ~/.claude/commands/          # Claude Code 自定义命令
-Agent配置: ~/.claude/settings.json     # 或 CLAUDE.md
-
-配置格式:
-{
-  "commands": {
-    "my-skill": {
-      "description": "技能描述",
-      "template": "提示词模板"
-    }
-  }
-}
-```
-
-### 13.2 Cursor
-
-```
-配置目录: ~/.cursor/
-技能存放: ~/.cursorrules               # Cursor 规则文件
-Agent配置: ~/.cursor/agents/
-
-配置格式 (.cursorrules):
----
-description: 技能描述
-globs: ["**/*.ts"]
----
-规则内容...
-```
-
-### 13.3 通义灵码 (Qwen)
-
-```
-配置目录: ~/.qwen/
-技能存放: ~/.qwen/skills/
-Agent配置: ~/.qwen/agents/
-
-配置格式 (skill.json):
-{
-  "name": "技能名称",
-  "description": "描述",
-  "prompt": "提示词模板",
-  "context": ["文件路径"]
-}
-```
-
-### 13.4 CodeBuddy Code
-
-```
-配置目录: ~/.codebuddy/
-技能存放: ~/.codebuddy/skills/
-Agent配置: ~/.codebuddy/agents/
-
-配置格式:
-{
-  "name": "技能名称",
-  "systemPrompt": "系统提示词",
-  "tools": [...],
-  "context": {...}
-}
-```
-
-### 13.5 环境适配器接口
-
-```typescript
-// src/core/env-adapter.ts
-
-interface EnvAdapter {
-  name: AIEnvironment;
-  configDir: string;
-  
-  // 部署技能
-  deploySkill(skill: SkillMeta): Promise<void>;
-  
-  // 部署 Agent
-  deployAgent(agent: AgentConfig): Promise<void>;
-  
-  // 生成配置文件
-  generateConfig(resource: ResourceMeta): Promise<string>;
-  
-  // 验证部署
-  verify(name: string): Promise<boolean>;
-}
-
-class ClaudeAdapter implements EnvAdapter {
-  name = 'claude';
-  configDir = '.claude';
-  
-  async deploySkill(skill: SkillMeta): Promise<void> {
-    // 生成 .claude/commands/{skill-name}.md
-  }
-  
-  async deployAgent(agent: AgentConfig): Promise<void> {
-    // 更新 settings.json 或生成 CLAUDE.md
-  }
-}
-```
-
----
-
-## 14. 性能测试策略
-
-### 14.1 性能指标
-
-| 指标 | 目标值 | 测试方法 |
-|------|--------|----------|
-| 启动时间 | ≤ 2 秒 | 测量 CLI 入口到就绪时间 |
-| 列表响应 | ≤ 1 秒（500 资源） | 使用 mock 数据测试 |
-| 内存占用 | ≤ 100 MB | 使用 process.memoryUsage() |
-| 同步速度 | ≥ 100KB/s | 网络带宽测试 |
-
-### 14.2 测试用例
-
-```typescript
-// tests/performance/speed.test.ts
-
-describe('Performance Tests', () => {
-  it('should start within 2 seconds', async () => {
-    const start = Date.now();
-    await import('../src/index.js');
-    const elapsed = Date.now() - start;
-    expect(elapsed).toBeLessThan(2000);
-  });
-  
-  it('should list 500 resources within 1 second', async () => {
-    // 创建 500 个 mock 资源
-    // 测量 listSkills() 执行时间
-  });
-});
-```
+| P0-1 | Config 类型变更 + 迁移 | `types/index.ts`, `core/migration.ts` |
+| P0-2 | GitSync 增强 | `core/git-sync.ts` |
+| P0-3 | SyncService + push/pull | `core/sync-service.ts` |
+| P0-4 | CLI 命令重写 | `commands/sync.ts` |
+| P0-5 | status + --json 输出 | `commands/sync.ts` |
+| P1-1 | 冲突检测器 + resolve | `core/conflict-detector.ts` |
+| P1-2 | config init --repo | `core/init.ts`, `commands/config.ts` |
+| P1-3 | --dry-run | `commands/sync.ts` |
+| P1-4 | 单元测试 | `core/sync.test.ts` |
