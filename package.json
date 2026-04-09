@@ -1,5 +1,5 @@
 {
-  "name": "@occxix/sksync",
+  "name": "sksync",
   "version": "1.0.6",
   "description": "CLI skill management tool for developers - manage skills, knowledge base, and sync across devices",
   "type": "module",
