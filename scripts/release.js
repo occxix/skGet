@@ -87,9 +87,9 @@ function checkBranch() {
 }
 
 // 拉取最新代码
-function pullLatest() {
+function pullLatest(branch) {
   log('\n⬇️  拉取最新代码...', 'cyan');
-  exec('git pull origin $(git rev-parse --abbrev-ref HEAD)');
+  exec(`git pull origin ${branch}`);
   log('✓ 代码已更新', 'green');
 }
 
@@ -177,11 +177,11 @@ function publishToNpm(isBeta = false) {
 }
 
 // 推送到远程仓库
-function pushToRemote(newVersion, isBeta = false) {
+function pushToRemote(newVersion, branch, isBeta = false) {
   log('\n⬆️  推送到远程仓库...', 'cyan');
   
   // 推送代码
-  exec('git push origin $(git rev-parse --abbrev-ref HEAD)');
+  exec(`git push origin ${branch}`);
   
   // 推送标签（仅正式版本）
   if (!isBeta) {
@@ -243,7 +243,7 @@ async function main() {
     });
   }
   
-  pullLatest();
+  pullLatest(branch);
   runTests();
   buildProject();
   
@@ -263,7 +263,7 @@ async function main() {
   }
   
   publishToNpm(isBeta);
-  pushToRemote(newVersion, isBeta);
+  pushToRemote(newVersion, branch, isBeta);
   
   log('\n╔══════════════════════════════════════╗', 'green');
   log('║           🎉 发布成功！              ║', 'green');
