@@ -1,8 +1,8 @@
-# sksync 同步功能 - 技术方案文档
+# qskills 同步功能 - 技术方案文档
 
 **文档版本**: v3.0
 **创建日期**: 2026/04/09
-**产品名称**: sksync（简称 `sksync`）
+**产品名称**: qskills（简称 `qskills`）
 **本版本聚焦**: 同步功能重构
 
 ---
@@ -309,7 +309,7 @@ async function syncHandler(action: string | undefined, options: SyncCliOptions) 
 ### 5.1 初始化流程
 
 ```
-sksync sync（首次）
+qskills sync（首次）
 │
 ├─ 1. 检查 data/.git 是否存在
 │   ├─ 不存在 → git.init({ dir: dataDir, defaultBranch: 'main' })
@@ -333,7 +333,7 @@ sksync sync（首次）
 ### 5.2 Push 流程
 
 ```
-sksync sync push
+qskills sync push
 │
 ├─ 1. ensureRepo()
 ├─ 2. getStatus() → 无变更？ → 返回 filesChanged=0
@@ -348,7 +348,7 @@ sksync sync push
 ### 5.3 Pull 流程
 
 ```
-sksync sync pull
+qskills sync pull
 │
 ├─ 1. ensureRepo()
 ├─ 2. git.fetch('origin')
@@ -367,7 +367,7 @@ sksync sync pull
 ### 5.4 Sync 流程
 
 ```
-sksync sync（默认）
+qskills sync（默认）
 │
 ├─ 1. 执行 pull
 ├─ 2. pull 有冲突？ → 返回冲突结果，不 push
@@ -445,7 +445,7 @@ export async function migrateConfig(config: Config): Promise<Config> {
 
 | 文件 | 原因 |
 |------|------|
-| `src/commands/skill/sync.ts` | 同步逻辑统一收归 `sksync sync` |
+| `src/commands/skill/sync.ts` | 同步逻辑统一收归 `qskills sync` |
 
 ---
 

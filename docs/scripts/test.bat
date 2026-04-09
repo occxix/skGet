@@ -1,9 +1,9 @@
 @echo off
-REM sksync 测试脚本 (Windows)
+REM qskills 测试脚本 (Windows)
 REM 用途: 运行单元测试、生成覆盖率报告
 
 echo ==========================================
-echo   sksync 测试套件
+echo   qskills 测试套件
 echo ==========================================
 
 REM 进入项目目录

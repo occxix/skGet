@@ -1,11 +1,11 @@
 #!/bin/bash
-# sksync 开发环境启动脚本
+# qskills 开发环境启动脚本
 # 用途: 安装依赖、构建项目、启动开发模式
 
 set -e
 
 echo "=========================================="
-echo "  sksync 开发环境启动"
+echo "  qskills 开发环境启动"
 echo "=========================================="
 
 # 检查 Node.js 版本
@@ -46,12 +46,12 @@ echo "可用命令:"
 echo "  npm run dev          # 监听模式编译"
 echo "  npm run test         # 运行测试"
 echo "  npm run test:watch   # 监听模式测试"
-echo "  node bin/sksync.js  # 运行 CLI"
+echo "  node bin/qskills.js  # 运行 CLI"
 echo ""
 echo "开发命令示例:"
-echo "  node bin/sksync.js --help"
-echo "  node bin/sksync.js config init"
-echo "  node bin/sksync.js skill list"
+echo "  node bin/qskills.js --help"
+echo "  node bin/qskills.js config init"
+echo "  node bin/qskills.js skill list"
 echo ""
 
 # 启动开发监听

@@ -8,7 +8,7 @@ import { initSyncCommand } from './commands/sync.js';
 const program = new Command();
 
 program
-  .name('sksync')
+  .name('qskills')
   .description('CLI skill management tool for developers')
   .version('1.0.0')
   .option('-v, --verbose', 'enable verbose output')

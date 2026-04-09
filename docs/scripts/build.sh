@@ -1,11 +1,11 @@
 #!/bin/bash
-# sksync 构建脚本
+# qskills 构建脚本
 # 用途: 编译 TypeScript、验证构建产物
 
 set -e
 
 echo "=========================================="
-echo "  sksync 构建脚本"
+echo "  qskills 构建脚本"
 echo "=========================================="
 
 # 进入项目目录
@@ -62,4 +62,4 @@ echo ""
 echo "构建产物位于: dist/"
 echo ""
 echo "测试运行:"
-echo "  node bin/sksync.js --help"
+echo "  node bin/qskills.js --help"

@@ -1,4 +1,4 @@
-# sksync 脚本说明
+# qskills 脚本说明
 
 本目录包含项目开发、测试和构建的自动化脚本。
 
@@ -163,7 +163,7 @@ cd Qcli
 ./docs/scripts/test.sh --watch
 
 # 4. 测试 CLI
-node bin/sksync.js --help
+node bin/qskills.js --help
 ```
 
 ### CI/CD 集成

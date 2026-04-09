@@ -1,9 +1,9 @@
 @echo off
-REM sksync 构建脚本 (Windows)
+REM qskills 构建脚本 (Windows)
 REM 用途: 编译 TypeScript、验证构建产物
 
 echo ==========================================
-echo   sksync 构建脚本
+echo   qskills 构建脚本
 echo ==========================================
 
 REM 进入项目目录
@@ -50,4 +50,4 @@ echo.
 echo 构建产物位于: dist\
 echo.
 echo 测试运行:
-echo   node bin\sksync.js --help
+echo   node bin\qskills.js --help

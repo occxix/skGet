@@ -55,15 +55,15 @@ export function initSkillCommands(program: Command): void {
     .option('--tags <tags>', 'filter by tags (comma separated)')
     .action(searchSkills);
 
-  // skill sync (deprecated: use `sksync sync` instead)
+  // skill sync (deprecated: use `qskills sync` instead)
   skill
     .command('sync')
-    .description('Sync skills with remote repository (use `sksync sync` instead)')
+    .description('Sync skills with remote repository (use `qskills sync` instead)')
     .option('-e, --env <environment>', 'sync specific environment')
     .option('-s, --source <source>', 'sync source (public|private)')
     .option('--force', 'force overwrite local changes')
     .action(async () => {
-      console.log('This command is deprecated. Use `sksync sync` instead.');
+      console.log('This command is deprecated. Use `qskills sync` instead.');
     });
 
   // skill install (新增: 安装技能到指定环境)

@@ -1,12 +1,12 @@
-# sksync 公共技能库
+# qskills 公共技能库
 
-本目录包含可被 sksync 工具管理的技能包。
+本目录包含可被 qskills 工具管理的技能包。
 
 ## 技能列表
 
 | 技能名称 | 版本 | 描述 | 标签 |
 |----------|------|------|------|
-| sksync | 1.0.3 | AI 技能管理工具 | cli, skill-management, ai-tools |
+| qskills | 1.0.3 | AI 技能管理工具 | cli, skill-management, ai-tools |
 | code-review | 1.0.0 | 代码审查技能 | code-review, quality, security |
 
 ## 技能目录结构
@@ -24,13 +24,13 @@ skill-name/
 
 ```bash
 # 安装单个技能到指定环境
-sksync s add ./skills/sksync -n sksync -e claude
+qskills s add ./skills/qskills -n qskills -e claude
 
 # 安装技能到所有环境
-sksync s add ./skills/sksync -n sksync --all
+qskills s add ./skills/qskills -n qskills --all
 
 # 使用短命令
-sksync s add ./skills/code-review -n code-review --all
+qskills s add ./skills/code-review -n code-review --all
 ```
 
 ## 创建新技能
@@ -38,7 +38,7 @@ sksync s add ./skills/code-review -n code-review --all
 1. 创建技能目录：`mkdir skills/your-skill`
 2. 创建 `SKILL.md` 文件，描述技能功能和使用方法
 3. 创建 `skill.json` 文件，填写元数据
-4. 使用 `sksync s add` 添加到系统中
+4. 使用 `qskills s add` 添加到系统中
 
 ## 技能元数据格式 (skill.json)
 

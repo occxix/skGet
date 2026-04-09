@@ -33,7 +33,7 @@ npm run release:beta
 - [ ] 代码已提交到 Git
 - [ ] 所有测试通过：`npm test`
 - [ ] 构建成功：`npm run build`
-- [ ] 本地测试正常：`node bin/sksync.js --help`
+- [ ] 本地测试正常：`node bin/qskills.js --help`
 - [ ] 更新 CHANGELOG（如有重大变更）
 - [ ] 检查发布内容：`npm pack --dry-run`
 
@@ -71,13 +71,13 @@ npm whoami
 ### 3. 检查包名
 
 ```bash
-npm search sksync
+npm search qskills
 ```
 
 如果包名已被占用，可使用作用域：
 ```json
 {
-  "name": "@your-username/sksync"
+  "name": "@your-username/qskills"
 }
 ```
 
@@ -88,14 +88,14 @@ npm search sksync
 npm pack
 
 # 全局安装测试
-npm install -g sksync-1.0.0.tgz
+npm install -g qskills-1.0.0.tgz
 
 # 测试命令
-sksync --help
-sksync skill list
+qskills --help
+qskills skill list
 
 # 卸载测试版本
-npm uninstall -g sksync
+npm uninstall -g qskills
 ```
 
 ### 5. 发布
@@ -118,7 +118,7 @@ npm publish --tag next
 
 ```bash
 # 等待几分钟后测试
-npx sksync --help
+npx qskills --help
 ```
 
 ---
@@ -178,7 +178,7 @@ npm publish
 1. 配置 `package.json`：
 ```json
 {
-  "name": "@your-username/sksync",
+  "name": "@your-username/qskills",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   }
@@ -200,13 +200,13 @@ npm publish
 
 ```bash
 # 最新版本
-npx github:your-username/sksync skill list
+npx github:your-username/qskills skill list
 
 # 指定版本
-npx github:your-username/sksync#v1.0.0 skill list
+npx github:your-username/qskills#v1.0.0 skill list
 
 # 指定分支
-npx github:your-username/sksync#develop skill list
+npx github:your-username/qskills#develop skill list
 ```
 
 ---
@@ -282,21 +282,21 @@ jobs:
 
 ```bash
 # 撤销 24 小时内的版本
-npm unpublish sksync@1.0.1
+npm unpublish qskills@1.0.1
 ```
 
 ### 撤销整个包
 
 ```bash
 # 需要等待 24 小时生效
-npm unpublish sksync --force
+npm unpublish qskills --force
 ```
 
 ### 弃用版本
 
 ```bash
 # 标记为已弃用（不删除）
-npm deprecate sksync@1.0.0 "此版本有严重 bug，请升级"
+npm deprecate qskills@1.0.0 "此版本有严重 bug，请升级"
 ```
 
 ---
@@ -308,7 +308,7 @@ npm deprecate sksync@1.0.0 "此版本有严重 bug，请升级"
 使用作用域：
 ```json
 {
-  "name": "@your-username/sksync"
+  "name": "@your-username/qskills"
 }
 ```
 
@@ -339,7 +339,7 @@ npm publish --otp=123456
 等待 npm 同步（通常几分钟）：
 ```bash
 # 使用官方源
-npm install sksync --registry https://registry.npmjs.org
+npm install qskills --registry https://registry.npmjs.org
 ```
 
 ### Q: 版本已存在
@@ -356,4 +356,4 @@ npm publish
 
 - [README](../README.md)
 - [测试报告](TEST_REPORT_20260409.md)
-- [技术规格](TECH_SPEC_sksync_20260409.md)
+- [技术规格](TECH_SPEC_qskills_20260409.md)
