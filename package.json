@@ -1,6 +1,6 @@
 {
   "name": "skget",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "CLI skill management tool for developers - manage skills, knowledge base, and sync across devices",
   "type": "module",
   "bin": {
